@@ -10,8 +10,6 @@ import (
 )
 
 func Day2ex1() {
-	fmt.Printf("ima here")
-
 	f, err := os.Open("./day2/day2ex1.txt")
 	help.IfErr(err)
 
@@ -106,4 +104,16 @@ func Day2ex1() {
 
 	}
 	fmt.Printf("\n Total: %d", total)
+}
+
+func Day2ex2() {
+	f, err := os.Open("./day2/day2ex1.txt")
+	help.IfErr(err)
+
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+
+	}
 }
