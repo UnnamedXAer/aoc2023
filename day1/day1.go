@@ -64,13 +64,21 @@ func Day1ex2() {
 	// digits := []byte{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'}
 	digits := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}
 
-	reText := "(?i)" + strings.Join(words, "|") + "|" + strings.Join(digits, "|")
+	words2 := make([]string, len(words))
+	for i, v := range words {
+		b := []byte(v)
+		slices.Reverse(b)
+		words2[i] = string(b)
+	}
+
+	reText := strings.Join(words, "|") + "|" + strings.Join(digits, "|")
 	fmt.Printf("\nre text: %q", reText)
 	re := regexp.MustCompile(reText)
+	reTextB := []byte(reText)
+	slices.Reverse(reTextB)
+	re2 := regexp.MustCompile(string(reTextB))
 
-	ord := make([]string, 0, 1000)
-
-	file, err := os.Open("./day1/day1ex2_test.txt")
+	file, err := os.Open("./day1/day1ex2.txt")
 	help.IfErr(err)
 	defer file.Close()
 
@@ -82,13 +90,11 @@ func Day1ex2() {
 		line := scanner.Bytes()
 
 		fmt.Printf("%50s", line)
-		ord = append(ord, fmt.Sprintf("%55s", line))
-		match := re.FindAllString(string(line), -1)
+		match := re.FindString(string(line))
 
-		ord[i] += fmt.Sprintf("[ %-12v ]", strings.Join([]string{match[0], match[len(match)-1]}, " "))
-		fmt.Printf(" %-30v", fmt.Sprint(match))
+		fmt.Printf(" %-10v", fmt.Sprint(match))
 
-		m := match[0]
+		m := match
 		idx := slices.Index(words, m)
 		if idx == -1 {
 			idx = slices.Index(digits, m)
@@ -99,17 +105,25 @@ func Day1ex2() {
 		if idx == -1 {
 			fmt.Fprintf(os.Stderr, "for: %q, m = %q, index was 0", line, m)
 			panic(fmt.Sprintf("for: %q, m = %q, index was 0", line, m))
-
-			continue
 		}
 		idx += 1
 		fmt.Printf(" - [%d]", idx)
-		ord[i] += fmt.Sprintf(" - [%d]", idx)
 
 		// last number
 		lineSum := idx * 10
-		m = match[len(match)-1]
-		idx = slices.Index(words, m)
+		// m = match[len(match)-1]
+		// idx = slices.Index(words, m)
+		// if idx == -1 {
+		// 	idx = slices.Index(digits, m)
+		// 	// b := unsafe.Slice(unsafe.StringData(m), 1)
+		// 	// idx = bytes.Index(digits, b)
+		// }
+
+		slices.Reverse(line)
+		match = re2.FindString(string(line))
+		m = match
+		fmt.Printf(" %-10v", fmt.Sprint(match))
+		idx = slices.Index(words2, m)
 		if idx == -1 {
 			idx = slices.Index(digits, m)
 			// b := unsafe.Slice(unsafe.StringData(m), 1)
@@ -123,14 +137,10 @@ func Day1ex2() {
 
 		idx += 1
 		fmt.Printf(" [%d]", idx)
-		ord[i] += fmt.Sprintf(" [%d]", idx)
 		lineSum += idx
 		sum += lineSum
 		fmt.Printf(" = %d\n", lineSum)
-		ord[i] += fmt.Sprintf(" = %d\n", lineSum)
 		i++
 	}
-	slices.Sort(ord)
-	fmt.Printf("\n\n%v", ord)
 	fmt.Printf("\n sum %d", sum)
 }
