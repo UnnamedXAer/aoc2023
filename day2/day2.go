@@ -120,8 +120,7 @@ func Day2ex2() {
 
 		var green, blue, red int
 		line := scanner.Bytes()
-		lineString := string(line)
-		fmt.Printf("\n%-85s", lineString)
+		fmt.Printf("\n%-85s", line)
 		count := len(line)
 		var b byte
 		var number int
