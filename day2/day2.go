@@ -2,6 +2,7 @@ package day2
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
@@ -112,8 +113,78 @@ func Day2ex2() {
 
 	defer f.Close()
 
+	var total int
+
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 
+		var green, blue, red int
+		line := scanner.Bytes()
+		lineString := string(line)
+		fmt.Printf("\n%-85s", lineString)
+		count := len(line)
+		var b byte
+		var number int
+	gameLoop:
+		for i := 5; i < count; i++ {
+			b = line[i]
+			// skip game id
+			if b != ':' {
+				continue
+			}
+
+			// to read gameId loop back a few characters checking if they are number
+			i++ // skip ':'
+			// after 'Game X: '
+			for /*i < count */ {
+				i++ // skip space
+
+				b = line[i]
+				number = int(b - '0')
+				// peek next char, if it's digit update number
+				b = line[i+1]
+				if b != ' ' {
+					number = number*10 + int(b-'0')
+					i++
+				}
+				i++ // skip space
+				i++ // get first char of the color
+				b = line[i]
+				switch b {
+				case 'r':
+					if number > red {
+						red = number
+					}
+				case 'g':
+					if number > green {
+						green = number
+					}
+				case 'b':
+					if number > blue {
+						blue = number
+					}
+				default:
+					colonIdx := bytes.IndexByte(line, ':')
+					panic(fmt.Sprintf("\nincorrect color %q, at %d, in %q, here: %q", string(b), i, line[:colonIdx], line[i:]))
+				}
+
+				// skip rest of the color name's characters
+				for ; ; i++ {
+					if i == count {
+						break gameLoop // end of game line
+					}
+					b = line[i]
+					if b != ',' && b != ';' {
+						continue
+					}
+					i++ // skip ',' or ';'
+					break
+				}
+			}
+		}
+
+		fmt.Printf(" - {r: %2d, g: %2d, b: %2d} = %d", red, green, blue, red*green*blue)
+		total += red * green * blue
 	}
+	fmt.Printf("\n total: %d", total)
 }
