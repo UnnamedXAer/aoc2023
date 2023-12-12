@@ -10,7 +10,7 @@ import (
 
 func Day3ex1() {
 
-	f, err := os.Open("./day3/day3ex1_test.txt")
+	f, err := os.Open("./day3/day3ex1.txt")
 	help.IfErr(err)
 
 	defer f.Close()
@@ -22,8 +22,11 @@ func Day3ex1() {
 	var lineAbove, line, lineBelow []byte
 
 	lastLineScanned := !scanner.Scan()
-	lineBelow = scanner.Bytes()
+	// using scanner.Bytes() produce 3 lines that were out of order... more than an hour lost...
+	lineBelow = []byte(scanner.Text())
 	count := len(lineBelow)
+
+	cnt := 1
 
 	for {
 		if lastLineScanned {
@@ -32,12 +35,12 @@ func Day3ex1() {
 
 		lineAbove = line
 		line = lineBelow
-
 		lastLineScanned = !scanner.Scan()
 		if lastLineScanned {
 			lineBelow = nil
 		} else {
-			lineBelow = scanner.Bytes()
+			// order issue
+			lineBelow = []byte(scanner.Text())
 		}
 
 		numLen := 0
@@ -59,9 +62,9 @@ func Day3ex1() {
 			// number ended
 			// check char before and after the number if exists
 			if (i < count && isSymbol(line[i])) || (i-numLen-1 >= 0 && isSymbol(line[i-numLen-1])) {
-				total += extractInt(line, i-1, numLen)
-				numLen = 0
-				break
+				num := extractInt(line, i-1, numLen)
+				total += num
+				continue
 			}
 
 			// check chars line above and below
@@ -76,28 +79,23 @@ func Day3ex1() {
 						}
 						// if char is a symbol get the number and break from both loops
 						if isSymbol(tmpLine[idx]) {
-							total += extractInt(line, i-1, numLen)
-							numLen = 0
+							num := extractInt(line, i-1, numLen)
+							total += num
 							break loopAboveBelow
 						}
 					}
 				}
 				tmpLine = lineBelow
 			}
-
-			// check if haveNum
-
 		}
+		cnt++
 	}
-	fmt.Printf("\nTotal: %d", total)
+
+	fmt.Printf("\n\nTotal: %d", total)
 }
 
 func isSymbol(char byte) bool {
-
-	if char != '.' && !(char >= '0' && char <= '9') {
-		return true
-	}
-	return false
+	return char != '.' && !(char >= '0' && char <= '9')
 }
 
 func extractInt(line []byte, endPos int, count int) int {
