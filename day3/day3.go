@@ -107,3 +107,64 @@ func extractInt(line []byte, endPos int, count int) int {
 	}
 	return number
 }
+
+func Day3ex2() {
+
+	f, err := os.Open("./day3/day3ex1_test.txt")
+	help.IfErr(err)
+
+	defer f.Close()
+
+	var total int
+
+	scanner := bufio.NewScanner(f)
+
+	var line1, line2, line3 []byte
+
+	lastLineScanned := !scanner.Scan()
+	// using scanner.Bytes() produce 3 lines that were out of order... more than an hour lost...
+	line1 = []byte(scanner.Text())
+	lineSize := len(line1)
+
+	scanner.Scan()
+	line2 = []byte(scanner.Text())
+
+	cnt := 0
+	for {
+		if lastLineScanned {
+			break
+		}
+
+		line1 = line2
+		lastLineScanned = !scanner.Scan()
+		if lastLineScanned {
+			line2 = nil
+		} else {
+			// order issue
+			line2 = []byte(scanner.Text())
+		}
+
+		for i := 0; i < lineSize; i++ {
+
+			// go until find number
+			if !(line1[i] >= '0' && line1[i] <= '9') {
+				continue
+			}
+
+			numLen := 0
+			for ; i < lineSize && (line1[i] >= '0' && line1[i] <= '9'); i++ {
+				numLen++
+			}
+
+			numValue := extractInt(line1, i-1, numLen)
+			fmt.Printf(", %3d", numValue)
+
+			if i > 0 {
+			}
+
+		}
+
+		cnt++
+	}
+	fmt.Printf("\n\nTotal: %d", total)
+}
