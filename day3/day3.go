@@ -113,7 +113,7 @@ func extractInt(line []byte, endPos int, count int) int {
 
 func Day3ex2() {
 
-	f, err := os.Open("./day3/day3ex1_test.txt")
+	f, err := os.Open("./day3/day3ex1.txt")
 	help.IfErr(err)
 
 	defer f.Close()
@@ -122,32 +122,33 @@ func Day3ex2() {
 
 	scanner := bufio.NewScanner(f)
 
-	var line1, line2, line3 []byte
+	var line0, line1, line2, line3 []byte
 	fmt.Fprint(io.Discard, line3, line2, line1)
 
-	lastLineScanned := !scanner.Scan()
-	// using scanner.Bytes() produce 3 lines that were out of order... more than an hour lost...
-	// line1 = []byte(scanner.Text())
-
-	// scanner.Scan()
+	scanner.Scan()
 	line2 = []byte(scanner.Text())
+	scanner.Scan()
+	line3 = []byte(scanner.Text())
 
 	lineSize := len(line2)
 	cnt := 0
 	for {
-		if lastLineScanned {
+		if line2 == nil {
 			break
 		}
 
+		line0 = line1
 		line1 = line2
-		lastLineScanned = !scanner.Scan()
-		if lastLineScanned {
-			line2 = nil
-		} else {
+		line2 = line3
+		hasNextLine := scanner.Scan()
+		if hasNextLine {
 			// order issue
-			line2 = []byte(scanner.Text())
+			line3 = []byte(scanner.Text())
+		} else {
+			line3 = nil
 		}
 
+	loopLineCharacters:
 		for i := 0; i < lineSize; i++ {
 
 			// go until find number
@@ -159,27 +160,39 @@ func Day3ex2() {
 			for ; i < lineSize && (line1[i] >= '0' && line1[i] <= '9'); i++ {
 				numLen++
 			}
-
 			numValue := extractInt(line1, i-1, numLen)
-			fmt.Printf(", %3d", numValue)
 
 			if i < lineSize && line1[i] == '*' { // inline after
 				if i+1 < lineSize && isNumber(line1[i+1]) {
 					numValue2 := readNumValue(line1, lineSize, i+1)
 					tmp := numValue * numValue2
 					total += tmp
-					break
+					fmt.Printf("\n%d * %d = %d -> %d", numValue, numValue2, numValue*numValue2, total)
+					continue loopLineCharacters
 				} else if line2 != nil {
 					for k := -1; k < 2; k++ {
 						numValue2 := getMbNumber(line2, lineSize, i+k)
 						if numValue2 != 0 {
 							tmp := numValue * numValue2
 							total += tmp
-							break
+							fmt.Printf("\n%d * %d = %d -> %d", numValue, numValue2, numValue*numValue2, total)
+							continue loopLineCharacters
 						}
 					}
 				}
-			} else if i-numLen-1 >= 0 && line1[i-numLen-1] == '*' { // inline before
+			}
+
+			if line0 != nil && i+1 < lineSize && line0[i] == '*' && isNumber(line1[i+1]) {
+				//  ....*....
+				//  ..92.14..
+				numValue2 := getMbNumber(line1, lineSize, i+1)
+				tmp := numValue * numValue2
+				total += tmp
+				fmt.Printf("\n%d * %d = %d -> %d", numValue, numValue2, numValue*numValue2, total)
+				continue loopLineCharacters
+			}
+
+			if i-numLen-1 >= 0 && line1[i-numLen-1] == '*' { // inline before
 				// we do not check if there is number before * in this case because if there was we already
 				// included this pair because we travel from left to right
 				if line2 != nil {
@@ -192,34 +205,85 @@ func Day3ex2() {
 						if numValue2 != 0 {
 							tmp := numValue * numValue2
 							total += tmp
-							break
+							fmt.Printf("\n%d * %d = %d -> %d", numValue, numValue2, numValue*numValue2, total)
+							continue loopLineCharacters
 						}
 					}
-					// if numValue2:= getMbNumber(line2, lineSize, i)
-					// if isNumber(line2[i]) {
-					// 	numValue2 := readNumValue(line2, lineSize, i)
-					// 	tmp := numValue * numValue2
-					// 	total += tmp
-					// 	break
-					// } else if isNumber(line2[i-1]) {
-					// 	numValue2 := readNumValue(line2, lineSize, i)
-					// 	tmp := numValue * numValue2
-					// 	total += tmp
-					// 	break
-					// } else if isNumber(line1[i+1]) {
-					// 	numValue2 := readNumValue(line2, lineSize, i)
-					// 	tmp := numValue * numValue2
-					// 	total += tmp
-					// 	break
-					// }
 				}
 			}
 
+			if line2 != nil { // next line
+				startIdx := max(0, i-numLen-1) // one char before the number if available
+				endIdx := min(lineSize-1, i)   //one char after the number if available
+
+				for k := startIdx; k <= endIdx; k++ {
+					if line2[k] != '*' {
+						continue
+					}
+
+					if k == endIdx && k+1 < lineSize && isNumber(line1[k+1]) {
+						//  ...333.22..
+						//  ......*....
+						numValue2 := getMbNumber(line1, lineSize, k+1)
+						tmp := numValue * numValue2
+						total += tmp
+						fmt.Printf("\n%d * %d = %d -> %d", numValue, numValue2, numValue*numValue2, total)
+						continue loopLineCharacters
+					}
+
+					if k > 0 && isNumber(line2[k-1]) { // before
+						//  ...333....
+						//  ...22*....
+
+						numValue2 := getMbNumber(line2, lineSize, k-1)
+						tmp := numValue * numValue2
+						total += tmp
+						fmt.Printf("\n%d * %d = %d -> %d", numValue, numValue2, numValue*numValue2, total)
+						continue loopLineCharacters
+					} else if k+1 < lineSize && isNumber(line2[k+1]) { // after
+						//  ...333....
+						//  ......*22.
+
+						numValue2 := getMbNumber(line2, lineSize, k+1)
+						tmp := numValue * numValue2
+						total += tmp
+						fmt.Printf("\n%d * %d = %d -> %d", numValue, numValue2, numValue*numValue2, total)
+						continue loopLineCharacters
+					} else if line3 != nil { // we got '*' at k, find adjacent number in 3rd line
+						numValue2 := 0
+						if k > 0 && isNumber(line3[k-1]) {
+							//  ...333....
+							//  ..*.......
+							//  44........
+							numValue2 = getMbNumber(line3, lineSize, k-1)
+						} else if isNumber(line3[k]) {
+							//  ...333....
+							//  ..*.......
+							//  ..44......
+							numValue2 = getMbNumber(line3, lineSize, k)
+						} else if k+1 < lineSize && isNumber(line3[k+1]) {
+							//  ...333....
+							//  ..*.......
+							//  ...44.....
+							numValue2 = getMbNumber(line3, lineSize, k+1)
+						}
+
+						if numValue2 != 0 {
+							tmp := numValue * numValue2
+							total += tmp
+							fmt.Printf("\n%d * %d = %d -> %d", numValue, numValue2, numValue*numValue2, total)
+							continue loopLineCharacters
+						}
+					}
+				}
+			}
 		}
 
 		cnt++
 	}
 	fmt.Printf("\n\nTotal: %d", total)
+	// 1454678
+	// 84399773
 }
 
 func getMbNumber(line []byte, lineSize, pos int) int {
@@ -236,6 +300,10 @@ func readNumValue(line []byte, lineSize, pos int) int {
 			pos--
 			break
 		}
+	}
+
+	if pos == lineSize {
+		pos--
 	}
 
 	numLen := 0
