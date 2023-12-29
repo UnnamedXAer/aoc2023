@@ -170,3 +170,71 @@ func readMap(scanner *bufio.Scanner, mapsInfo *theezzMaps, key string) {
 		cnt++
 	}
 }
+
+func Day5ex2() {
+
+	f, err := os.Open("./day5/data.txt")
+	help.IfErr(err)
+
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	scanner.Scan()
+	var line []byte = []byte(scanner.Text())
+
+	lineSize := len(line)
+
+	seeds := make([]int, 0, 20)
+	seedsCnt := 0
+	// read seeds:
+	for i := lineSize - 1; line[i] != ':'; i-- {
+		seeds = append(seeds, 0)
+		multiplier := 1
+
+		for ; line[i] != ' '; i-- {
+			seeds[seedsCnt] += int(line[i]-'0') * multiplier
+			multiplier *= 10
+		}
+
+		seedsCnt++
+	}
+
+	// fmt.Printf("\nseeds: %d, %v", seedsCnt, seeds)
+
+	scanner.Scan() // skip empty line
+
+	mapsInfo := newTheezzMaps()
+	var key string
+	for scanner.Scan() {
+		// get the next map name
+		line = scanner.Bytes()
+		lineSize := len(line)
+
+		key = string(line[:lineSize-5])
+
+		readMap(scanner, &mapsInfo, key)
+	}
+
+	var lowestLocation int = math.MaxInt
+
+	// fmt.Println()
+	// for _, seed := range seeds {
+	for i := seedsCnt - 1; i > 0; i -= 2 {
+		fmt.Printf("\nChecking seeds from: %d to %d, length: %d", seeds[i], seeds[i]+seeds[i-1]-1, seeds[i-1])
+		for seed := seeds[i]; seed < seeds[i]+seeds[i-1]; seed++ {
+			prevNumber := seed
+			for _, k := range mapsInfo.keys {
+				// fmt.Printf("\n%23s: %3d -> ", k, prevNumber)
+				prevNumber = findCorrespondingNumber(prevNumber, mapsInfo.maps[k])
+				// fmt.Printf("%3d", prevNumber)
+
+			}
+			// fmt.Printf("\n -- for seed: %d, we got location: %d", seed, prevNumber)
+			if prevNumber < lowestLocation {
+				lowestLocation = prevNumber
+			}
+		}
+	}
+
+	fmt.Printf("\n\nlowest location: %d", lowestLocation)
+}

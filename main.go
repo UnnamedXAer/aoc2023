@@ -10,7 +10,7 @@ func main() {
 	// day3.Day3ex2()
 	// day4.Day4ex1()
 	// day4.Day4ex2()
-	day5.Day5ex1()
-	// day5.Day5ex2()
+	// day5.Day5ex1()
+	day5.Day5ex2()
 
 }
