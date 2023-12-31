@@ -157,3 +157,55 @@ func calcDistance(timeCharging int, raceTime int) int {
 func calcMoveTime(timeCharging int, raceTime int) int {
 	return raceTime - timeCharging
 }
+
+func extractDataEx2() race {
+	f, err := os.Open("./day6/data.txt")
+	help.IfErr(err)
+
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	scanner.Scan()
+	var line []byte = scanner.Bytes()
+	// Time:      7  15   30
+	// Distance:  9  40  200
+
+	multiplier := 1
+	time := 0
+	for i := len(line) - 1; line[i] != ':'; i-- {
+		if !help.IsNumber(line[i]) {
+			continue
+		}
+		for ; help.IsNumber(line[i]); i-- {
+			time += int(line[i]-'0') * multiplier
+			multiplier *= 10
+		}
+	}
+
+	scanner.Scan()
+	line = scanner.Bytes()
+
+	multiplier = 1
+	distance := 0
+	for i := len(line) - 1; line[i] != ':'; i-- {
+		if !help.IsNumber(line[i]) {
+			continue
+		}
+		for ; help.IsNumber(line[i]); i-- {
+			distance += int(line[i]-'0') * multiplier
+			multiplier *= 10
+		}
+	}
+
+	mainRace := race{time, distance}
+
+	return mainRace
+}
+
+func Day6ex2() {
+	mainRace := extractDataEx2()
+
+	total := calcTotalWinCombinationsV2([]race{mainRace})
+
+	fmt.Printf("\n race: %+v, total: %d", mainRace, total)
+}
