@@ -187,11 +187,11 @@ func Day5ex2() {
 
 	seeds := readSeeds(line)
 	mapsInfo := readMapsInfo(scanner, line)
-	out := removeOverlapsInSeeds(seeds)
+	clearSeeds := removeOverlapsInSeeds(seeds)
 
-	lowestLocation, startMappingTime := findLowestRange(mapsInfo, out)
+	lowestLocation, lowestLocSeed, startMappingTime := findLowestRange(mapsInfo, clearSeeds)
 
-	fmt.Printf("\n\nlowest location: %d", lowestLocation)
+	fmt.Printf("\n\nlowest location: %d, for seed: %d", lowestLocation, lowestLocSeed)
 	if lowestLocation != 37384986 {
 		fmt.Printf("\nincorrect answer: %d, want: %d", lowestLocation, 37384986)
 		//  342851781700 - base total time
@@ -240,9 +240,10 @@ func readMapsInfo(scanner *bufio.Scanner, line []byte) theezzMaps {
 	return mapsInfo
 }
 
-func findLowestRange(mapsInfo theezzMaps, out []int) (int, int64) {
+func findLowestRange(mapsInfo theezzMaps, out []int) (int, int, int64) {
 	keys := mapsInfo.keys
 	var lowestLocation int = math.MaxInt
+	var lowestLocSeed int = 0
 
 	startMappingTime := time.Now().UnixNano()
 	for i := len(out) - 1; i > 0; i -= 2 {
@@ -256,11 +257,12 @@ func findLowestRange(mapsInfo theezzMaps, out []int) (int, int64) {
 			}
 
 			if prevNumber < lowestLocation {
+				lowestLocSeed = seed
 				lowestLocation = prevNumber
 			}
 		}
 	}
-	return lowestLocation, startMappingTime
+	return lowestLocation, lowestLocSeed, startMappingTime
 }
 
 func removeOverlapsInSeeds(seeds []int) []int {
@@ -362,68 +364,87 @@ func extractSeedsAndMaps() ([]int, theezzMaps) {
 }
 
 func Day5ex2_v2() {
-	startTime := time.Now().UnixNano()
+	// base on: https://www.youtube.com/watch?v=LcVJRXoRTH8
+
+	startTime := time.Now()
 	seeds, mapsInfo := extractSeedsAndMaps()
 	slices.Reverse(seeds) // I don't want to copy/modify previous functions so we just quick fix by reverse
 
 	// seedsIntervals are [start,end] inclusive
 	seedsIntervals := seedsToIntervals(seeds)
-	fmt.Printf("\nseeds intervals:\n%v", seedsIntervals)
+	// fmt.Printf("\nseeds intervals:\n%v", seedsIntervals)
 
 	updateMapsInfo(&mapsInfo)
 
+	startProcessingTime := time.Now()
 	resultLocationIntervals := processSeedsThroughMaps(seedsIntervals, mapsInfo)
-
 	lowestLocation := findLowestLocationInIntervals(resultLocationIntervals)
+
+	elapsedProcessing := time.Since(startProcessingTime)
 
 	fmt.Printf("\n\nlowest location: %d", lowestLocation)
 	if lowestLocation != 37384986 {
 		fmt.Printf("\nincorrect answer: %d, want: %d", lowestLocation, 37384986)
 		//  342851781700 - base total time
 	}
-	endTime := time.Now().UnixNano()
 	// fmt.Printf("\ntotal time: %v, mapping time: %v", endTime-startTime, endTime-startMappingTime)
 
-	fmt.Printf("\ntotal time: %dms, %dµs", (endTime-startTime)/1000, endTime-startTime)
+	elapsedTotal := time.Since(startTime)
+	fmt.Printf("\ntotal time: %s, processing time: %d", elapsedTotal, elapsedProcessing)
 }
 
 func processSeedsThroughMaps(seedsIntervals [][2]int, mapsInfo theezzMaps) [][2]int {
 
-	locIntervals := make([][2]int, 0, len(seedsIntervals))
-
 	keys := mapsInfo.keys
+	mappers := mapsInfo.maps
+	locIntervals := [][2]int{}
 
 	for _, seed := range seedsIntervals {
-	loopMappers:
-		for _, key := range keys {
-			mapper := mapsInfo.maps[key]
-			for _, mapping := range mapper {
-				if mapping[1] < seed[0] {
-					continue
-				}
-
-				// we found the first interval that overlaps with the seed
-
-				end := min(mapping[1], seed[1]) + mapping[2]
-				start := seed[0] + mapping[2]
-				locIntervals = append(locIntervals, [2]int{
-					start,
-					end,
-				})
-
-				seed[0] = end + 1
-
-				// interval's start greater than interval's end means that we "extracted" all values
-				if seed[0]+1 > seed[1] {
-					break loopMappers
-				}
-			}
-		}
+		locIntervals = append(locIntervals, processSeedIntervals(seed, keys, mappers)...)
 	}
 
-	fmt.Printf("locIntervals: %v", locIntervals)
-
+	// fmt.Printf("locIntervals: %v", locIntervals)
 	return locIntervals
+}
+
+func processSeedIntervals(seed [2]int, keys []string, mappers map[string][][3]int) [][2]int {
+	results := [][2]int{seed}
+	for _, key := range keys {
+		mapper := mappers[key]
+		var newResults [][2]int
+		for _, interval := range results {
+			newResults = append(newResults, processMapperInterval(mapper, interval)...)
+		}
+
+		results = newResults
+	}
+
+	return results
+}
+
+func processMapperInterval(mapper [][3]int, currentSourceInterval [2]int) [][2]int {
+	results := make([][2]int, 0, len(currentSourceInterval))
+	for _, mapping := range mapper {
+		if mapping[1] < currentSourceInterval[0] {
+			continue
+		}
+
+		// we found the first interval that overlaps with the seed
+		end := min(mapping[1], currentSourceInterval[1]) //+ mapping[2]
+		start := currentSourceInterval[0] + mapping[2]   // we know for sure that interval start will be at least eq mapping start because it's not lesser than mapping end.
+		results = append(results, [2]int{
+			start,
+			end + mapping[2],
+		})
+
+		currentSourceInterval[0] = end + 1
+
+		// interval's start greater than interval's end which means that we "extracted" all values
+		if currentSourceInterval[0]+1 > currentSourceInterval[1] {
+			break
+		}
+	}
+	return results
 }
 
 func findLowestLocationInIntervals(intervals [][2]int) int {
@@ -446,18 +467,17 @@ func updateMapsInfo(mapsInfo *theezzMaps) {
 	for _, key := range keys {
 		m := maps[key]
 
-		fmt.Println()
 		// for i, mapping := range m {
 		for i := 0; i < len(m); i++ {
 			mapping := m[i]
 			// fmt.Printf("\n%2d. from: %v", i, mapping)
 			length := mapping[2]
-			source := mapping[1]
+			start := mapping[1]
 			destination := mapping[0]
-			end := source + length - 1
-			offset := destination - source
+			end := start + length - 1
+			offset := destination - start
 			// {start, end, offset}
-			mapping[0] = source
+			mapping[0] = start
 			mapping[1] = end
 			mapping[2] = offset
 			// fmt.Printf("\n%2d.   to: %v", i, mapping)
