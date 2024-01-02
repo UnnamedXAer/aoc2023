@@ -49,12 +49,12 @@ func (h gameHand) String() string {
 	return fmt.Sprintf("{cards: %v handType: %d, bid: %4d}", h.cards, h.handType, h.bid)
 }
 
-func extractData() []gameHand {
+func extractData(withJokers bool) []gameHand {
 	test := 1
 
 	filename := "./day7/data"
 	if test == 0 {
-		filename += "_t2"
+		filename += "_t"
 	}
 
 	filename += ".txt"
@@ -82,7 +82,7 @@ func extractData() []gameHand {
 			i--
 		}
 
-		hand.handType = getHandType(hand.cards)
+		hand.handType = getHandType(hand.cards, withJokers)
 
 		// fmt.Printf("\n cards: %2v, type: %d - %s", hand.cards, hand.handType, HAND_TYPE_DESC[hand.handType])
 
@@ -92,9 +92,10 @@ func extractData() []gameHand {
 	return hands
 }
 
-func getHandType(cards handCards) handType {
+func getHandType(cards handCards, withJokers bool) handType {
 	counts := make([]int, CARDS_IN_HAND)
 
+	jokersCount := 0
 	for i := 0; i < CARDS_IN_HAND; i++ {
 		card := cards[i]
 		for k := 0; k < CARDS_IN_HAND; k++ {
@@ -102,18 +103,35 @@ func getHandType(cards handCards) handType {
 				counts[i]++
 			}
 		}
+
+		if card == 'J' {
+			jokersCount++
+		}
 	}
 
-	// fmt.Printf("\ncounts: %2v", counts)
+	fmt.Printf("\ncounts: %2v, jokers: %d", counts, jokersCount)
+	if jokersCount == 4 || jokersCount == 5 {
+		return fiveOfAKind
+	}
 
 	if counts[0] == 5 {
 		return fiveOfAKind
 	}
 	if counts[0] == 4 || counts[1] == 4 {
+		if jokersCount == 1 {
+			return fiveOfAKind
+		}
 		return fourOfAKind
 	}
 
-	if counts[0] == 3 || counts[1] == 3 || counts[2] == 3 {
+	if jokersCount < 3 && (counts[0] == 3 || counts[1] == 3 || counts[2] == 3) {
+		if jokersCount == 2 {
+			return fiveOfAKind
+		}
+		if jokersCount == 1 {
+			return fourOfAKind
+		}
+
 		for i := 0; i < CARDS_IN_HAND; i++ {
 			if counts[i] == 2 {
 				return fullHouse
@@ -122,18 +140,41 @@ func getHandType(cards handCards) handType {
 		return threeOfAKind
 	}
 
+	/////////////
 	pairs := 0
 	for i := 0; i < CARDS_IN_HAND; i++ {
-		if counts[i] == 2 {
+		if cards[i] != 'J' && counts[i] == 2 {
 			pairs++
 		}
 	}
 
 	if pairs == 4 {
+		if jokersCount > 0 {
+			return fullHouse
+		}
 		return twoPair
 	}
 
 	if pairs == 2 {
+		if jokersCount == 3 {
+			return fiveOfAKind
+		}
+		if jokersCount == 2 {
+			return fourOfAKind
+		}
+		if jokersCount == 1 {
+			return threeOfAKind
+		}
+		return onePair
+	}
+
+	if jokersCount == 3 {
+		return fourOfAKind
+	}
+	if jokersCount == 2 {
+		return threeOfAKind
+	}
+	if jokersCount == 1 {
 		return onePair
 	}
 
@@ -142,21 +183,21 @@ func getHandType(cards handCards) handType {
 
 func Ex1() {
 
-	hands := extractData()
+	hands := extractData(false)
 
-	sortHands(hands)
+	sortHands(hands, false)
 
 	// handsCount := len(hands)
 	// for i := 0; i < handsCount; i++ {
 	// 	fmt.Printf("%s %d\n", hands[i].cards, hands[i].bid)
 	// }
-	total := calcTotal(hands)
+	total := calcTotal(hands, false)
 
 	// 247878057 - too low
 	fmt.Printf("\n\nTotal: %d", total)
 }
 
-func calcTotal(hands []gameHand) uint64 {
+func calcTotal(hands []gameHand, withJokers bool) uint64 {
 	total := uint64(0)
 	handsCount := len(hands)
 	for i := 0; i < handsCount; i++ {
@@ -167,11 +208,15 @@ func calcTotal(hands []gameHand) uint64 {
 	return total
 }
 
-var LABELS = [...]byte{'2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'}
+func sortHands(hands []gameHand, withJokers bool) {
+	var LABELS = [...]byte{'2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'}
+	var LABELS_WITH_JOKERS = [...]byte{'J', '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'Q', 'K', 'A'}
+	const LABELS_COUNT = len(LABELS)
 
-const LABELS_COUNT = len(LABELS)
-
-func sortHands(hands []gameHand) {
+	labels := LABELS
+	if withJokers {
+		labels = LABELS_WITH_JOKERS
+	}
 
 	slices.SortFunc(hands, func(a, b gameHand) int {
 		if a.handType > b.handType {
@@ -191,13 +236,14 @@ func sortHands(hands []gameHand) {
 
 			ca := a.cards[i]
 			cb := b.cards[i]
+
 			for k := 0; k < LABELS_COUNT; k++ {
 				// labels won't be eq so if we fist find label a then it has lesser rank
-				if LABELS[k] == ca {
+				if labels[k] == ca {
 					return -1
 				}
 
-				if LABELS[k] == cb {
+				if labels[k] == cb {
 					return 1
 				}
 			}
@@ -211,4 +257,18 @@ func sortHands(hands []gameHand) {
 
 func Ex2() {
 
+	hands := extractData(true)
+
+	sortHands(hands, true)
+
+	// handsCount := len(hands)
+	// for i := 0; i < handsCount; i++ {
+	// 	fmt.Printf("%s %d\n", hands[i].cards, hands[i].bid)
+	// }
+	total := calcTotal(hands, true)
+
+	fmt.Printf("\n\nTotal: %d", total)
+	// 246327782
+	// 246381916 - too high
+	// 246285222
 }
