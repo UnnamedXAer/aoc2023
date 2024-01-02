@@ -109,7 +109,7 @@ func getHandType(cards handCards, withJokers bool) handType {
 		}
 	}
 
-	fmt.Printf("\ncounts: %2v, jokers: %d", counts, jokersCount)
+	// fmt.Printf("\ncounts: %2v, jokers: %d", counts, jokersCount)
 	if jokersCount == 4 || jokersCount == 5 {
 		return fiveOfAKind
 	}
