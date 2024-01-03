@@ -50,6 +50,13 @@ func ReadNumValueFromEnd(line []byte, lastDigitPos int) (v int, vLen int) {
 		multiplier *= 10
 	}
 
+	if lastDigitPos > -1 {
+		if line[lastDigitPos] == '-' {
+			v = -v
+			vLen++
+		}
+	}
+
 	return v, vLen
 }
 
