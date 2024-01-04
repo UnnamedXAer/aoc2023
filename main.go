@@ -1,6 +1,6 @@
 package main
 
-import "github.com/unnamedxaer/aoc2023/day9"
+import "github.com/unnamedxaer/aoc2023/day10"
 
 func main() {
 	// day1.Day1ex1()
@@ -23,5 +23,8 @@ func main() {
 	// day8.Ex2()
 
 	// day9.Ex1()
-	day9.Ex2()
+	// day9.Ex2()
+
+	day10.Ex1()
+	// day10.Ex2()
 }
