@@ -25,6 +25,6 @@ func main() {
 	// day9.Ex1()
 	// day9.Ex2()
 
-	day10.Ex1()
-	// day10.Ex2()
+	// day10.Ex1()
+	day10.Ex2()
 }
