@@ -63,3 +63,7 @@ func ReadNumValueFromEnd(line []byte, lastDigitPos int) (v int, vLen int) {
 func IsNumber(b byte) bool {
 	return b >= '0' && b <= '9'
 }
+
+type Point struct {
+	X, Y int
+}
