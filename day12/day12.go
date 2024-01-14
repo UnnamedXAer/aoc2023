@@ -112,6 +112,9 @@ func isPossible(pattern []byte, numbers []int) bool {
 			continue
 		}
 		groupSize++
+		if numIdx < numbersSize && groupSize > numbers[numIdx] {
+			return false
+		}
 	}
 
 	if groupSize > 0 {
