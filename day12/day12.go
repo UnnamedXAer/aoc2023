@@ -67,20 +67,22 @@ func Ex1() {
 	// fmt.Printf("\n%s", doc)
 	total := 0
 
+	possibilitiesCntTotal := 0
 	for _, r := range *doc {
 
 		possibilities := generateAllPossibilities(r.record)
-		// fmt.Printf("\n\nr: %v | possibilities: %d", string(r.record), len(possibilities))
+		possibilitiesCntTotal += len(possibilities)
 		docTotal := 0
 		for _, p := range possibilities {
 			if isPossible(p, r.numbers) {
 				docTotal++
 			}
 		}
-		fmt.Printf("\ndoc total: %d", docTotal)
+		// fmt.Printf("\ndoc total: %d", docTotal)
 		total += docTotal
 	}
 
+	fmt.Printf("\npossibilities total cnt: %d", possibilitiesCntTotal)
 	fmt.Printf("\n\n Total: %d", total)
 }
 
@@ -93,6 +95,9 @@ func isPossible(pattern []byte, numbers []int) bool {
 
 	for i := 0; i < patternSize; i++ {
 		b := pattern[i]
+		if b == unknown {
+			return true
+		}
 		if b == operational {
 			if groupSize > 0 {
 				if numIdx >= numbersSize {
@@ -133,9 +138,8 @@ func isPossible(pattern []byte, numbers []int) bool {
 
 func generateAllPossibilities(record []byte) [][]byte {
 	recordSize := len(record)
-	possibilities := make([][]byte, 0, 10)
 
-	buff := make([]string, 0, 30)
+	buff := make([][]byte, 0, 30)
 
 	for k := 0; k < recordSize; k++ {
 
@@ -147,29 +151,24 @@ func generateAllPossibilities(record []byte) [][]byte {
 			c := make([]byte, recordSize)
 			copy(c, record)
 			c[k] = operational
-			buff = append(buff, string(c))
+			buff = append(buff, c)
 			c = make([]byte, recordSize)
 			copy(c, record)
 			c[k] = damaged
-			buff = append(buff, string(c))
-			// buff = appendOptions(recordSize, string(record), k, buff)
+			buff = append(buff, c)
 			continue
 		}
 
 		buff = appendOptions(recordSize, k, buff)
 	}
 
-	for _, b := range buff {
-		possibilities = append(possibilities, []byte(b))
-	}
+	// fmt.Printf("\n\npossibilities for: %v\n%v", string(record), string(bytes.Join(buff, []byte{'\n'})))
 
-	// fmt.Printf("\n\npossibilities for: %v\n%v", string(record), string(bytes.Join(possibilities, []byte{'\n'})))
-
-	return possibilities
+	return buff
 }
 
 // appendOption assumes that buff is not empty
-func appendOptions(recordSize int, springPos int, buff []string) []string {
+func appendOptions(recordSize int, springPos int, buff [][]byte) [][]byte {
 
 	initialSize := len(buff)
 
@@ -179,13 +178,13 @@ func appendOptions(recordSize int, springPos int, buff []string) []string {
 		partialRecord := make([]byte, recordSize)
 		copy(partialRecord, curr)
 		partialRecord[springPos] = operational
-		buff[k] = string(partialRecord)
+		buff[k] = partialRecord
 		// buff = append(buff, string(partialRecord))
 
 		partialRecord = make([]byte, recordSize)
 		copy(partialRecord, curr)
 		partialRecord[springPos] = damaged
-		buff = append(buff, string(partialRecord))
+		buff = append(buff, partialRecord)
 	}
 
 	return buff
@@ -195,11 +194,159 @@ const operational = byte('.')
 const damaged = byte('#')
 const unknown = byte('?')
 
-func count(cfg []byte, nums []int) int {
-
-	return -1
-}
-
 func Ex2() {
 
+	doc := extractData()
+
+	// fmt.Printf("\n%s", doc)
+	total := 0
+	possibilitiesCntTotal := 0
+	for _, r := range *doc {
+
+		possibilities := generateAllPossibilitiesWithEarlyValidation(r.record, r.numbers)
+		possibilitiesCntTotal += len(possibilities)
+		docTotal := 0
+		for _, p := range possibilities {
+			if isPossible(p, r.numbers) {
+				docTotal++
+			}
+		}
+		// fmt.Printf("\ndoc total: %d", docTotal)
+		total += docTotal
+	}
+
+	fmt.Printf("\npossibilities total cnt: %d", possibilitiesCntTotal)
+
+	fmt.Printf("\n\n Total: %d", total)
+
+	///////////////////////
+
+	// for _, r := range *doc {
+	// 	recordSize := len(r.record)
+	// 	numbersSize := len(r.numbers)
+	// 	record := make([]byte, recordSize*5+4)
+	// 	numbers := make([]int, numbersSize*5)
+
+	// 	for i := 0; i < 5; i++ {
+	// 		copy(record[i*recordSize+i:recordSize*(i+1)+i], r.record)
+	// 		if i < 4 {
+	// 			record[recordSize*(i+1)+i] = unknown
+	// 		}
+	// 		copy(numbers[i*numbersSize:numbersSize*(i+1)], r.numbers)
+	// 	}
+
+	// 	possibilities := generateAllPossibilitiesWithEarlyValidation(record, numbers)
+	// 	possibilitiesCntTotal += len(possibilities)
+	// 	docTotal := 0
+	// 	for _, p := range possibilities {
+	// 		if isPossible(p, r.numbers) {
+	// 			docTotal++
+	// 		}
+	// 	}
+	// 	// fmt.Printf("\ndoc total: %d", docTotal)
+	// 	total += docTotal
+
+	// 	break // TODO:
+	// }
+
+	// fmt.Printf("\n\n Total: %d", total)
+
+}
+
+// appendOption assumes that buff is not empty
+func appendPossibleOptions(recordSize int, springPos int, buff [][]byte, numbers []int) [][]byte {
+
+	initialSize := len(buff)
+
+	for k := 0; k < initialSize; k++ {
+		curr := buff[k]
+
+		partialRecord := make([]byte, recordSize)
+		copy(partialRecord, curr)
+		partialRecord[springPos] = operational
+
+		if isPossible(partialRecord, numbers) {
+			buff[k] = partialRecord
+		} else {
+			buff[k] = nil
+		}
+
+		partialRecord = make([]byte, recordSize)
+		copy(partialRecord, curr)
+		partialRecord[springPos] = damaged
+		if isPossible(partialRecord, numbers) {
+			buff = append(buff, partialRecord)
+		}
+	}
+
+	buff = removeEmpty(buff)
+
+	return buff
+}
+
+func removeEmpty(buff [][]byte) [][]byte {
+	buffS := make([]string, len(buff))
+	for i, v := range buff {
+		buffS[i] = string(v)
+	}
+	buffSize := len(buff)
+
+	emptyRowIdx := 0
+	for emptyRowIdx != -1 { // TODO: can we remove this one?
+		k := emptyRowIdx
+		emptyRowIdx = -1
+		for ; k < buffSize; k++ {
+			if buff[k] == nil {
+				emptyRowIdx = k - 1
+				buffSize--
+				for j := buffSize; j > k; j-- {
+					if buff[j] == nil {
+						buffSize--
+						continue
+					}
+					break
+				}
+
+				buff[k] = buff[buffSize]
+			}
+		}
+	}
+
+	buff = buff[:buffSize]
+	buffS = make([]string, len(buff))
+	for i, v := range buff {
+		buffS[i] = string(v)
+	}
+
+	return buff
+}
+
+func generateAllPossibilitiesWithEarlyValidation(record []byte, numbers []int) [][]byte {
+	recordSize := len(record)
+	buff := make([][]byte, 0, 30)
+
+	for k := 0; k < recordSize; k++ {
+
+		if record[k] != unknown {
+			continue
+		}
+
+		if len(buff) == 0 {
+			c := make([]byte, recordSize)
+			copy(c, record)
+			c[k] = operational
+			buff = append(buff, c)
+			c = make([]byte, recordSize)
+			copy(c, record)
+			c[k] = damaged
+			buff = append(buff, c)
+			continue
+		}
+
+		buff = appendPossibleOptions(recordSize, k, buff, numbers)
+	}
+
+	// fmt.Printf("\n\npossibilities for: %v\n%v", string(record), string(bytes.Join(buff, []byte{'\n'})))
+
+	return buff
 }

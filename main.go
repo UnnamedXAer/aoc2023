@@ -1,6 +1,11 @@
 package main
 
-import "github.com/unnamedxaer/aoc2023/day12"
+import (
+	"fmt"
+	"time"
+
+	"github.com/unnamedxaer/aoc2023/day12"
+)
 
 func main() {
 	// day1.Day1ex1()
@@ -31,6 +36,31 @@ func main() {
 	// day11.Ex1()
 	// day11.Ex2()
 
-	day12.Ex1()
-	// day12.Ex2()
+	measure(day12.Ex1)
+	fmt.Printf("\n--------------------------\n")
+	measure(day12.Ex2)
+}
+
+func measure(fn func()) {
+	start := time.Now().UnixNano()
+
+	fn()
+
+	end := time.Now().UnixNano()
+	printTime(start, end)
+
+}
+
+func printTime(start, end int64) {
+	timeTotal := end - start
+	// fmt.Printf("\nnoano: %d", timeTotal)
+	if timeTotal < 1000000 {
+		fmt.Printf("\ntime: %d ns", timeTotal)
+	} else if timeTotal < 10*1000000000 {
+		fmt.Printf("\ntime: %d ms", timeTotal/1000000)
+	} else if timeTotal < 120*1000000000 {
+		fmt.Printf("\ntime: %d s", timeTotal/1000000000)
+	} else {
+		fmt.Printf("\ntime: %d min", timeTotal/60*1000000000)
+	}
 }
