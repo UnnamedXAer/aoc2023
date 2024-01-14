@@ -278,7 +278,11 @@ func appendPossibleOptions(recordSize int, springPos int, buff [][]byte, numbers
 		copy(partialRecord, curr)
 		partialRecord[springPos] = damaged
 		if isPossible(partialRecord, numbers) {
-			buff = append(buff, partialRecord)
+			if buff[k] == nil {
+				buff[k] = partialRecord
+			} else {
+				buff = append(buff, partialRecord)
+			}
 		}
 	}
 
