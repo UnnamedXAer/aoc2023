@@ -27,7 +27,7 @@ func (d *documentation) String() string {
 
 func extractData() *documentation {
 
-	f, err := os.Open("./day12/data.txt")
+	f, err := os.Open("./day12/data_t.txt")
 	help.IfErr(err)
 
 	scanner := bufio.NewScanner(f)
@@ -198,62 +198,73 @@ const damaged = byte('#')
 const unknown = byte('?')
 
 func Ex2() {
+	p1 := !true
+	if p1 {
+		doc := extractData()
+		total := 0
+		possibilitiesCntTotal := 0
+		for _, r := range *doc {
 
-	doc := extractData()
-
-	// fmt.Printf("\n%s", doc)
-	total := 0
-	possibilitiesCntTotal := 0
-	for _, r := range *doc {
-
-		possibilities := generateAllPossibilitiesWithEarlyValidation(r.record, r.numbers)
-		possibilitiesCntTotal += len(possibilities)
-		docTotal := 0
-		for _, p := range possibilities {
-			if isPossible(p, r.numbers) {
-				docTotal++
+			possibilities := generateAllPossibilitiesWithEarlyValidation(r.record, r.numbers)
+			possibilitiesCntTotal += len(possibilities)
+			docTotal := 0
+			for _, p := range possibilities {
+				if isPossible(p, r.numbers) {
+					docTotal++
+				}
 			}
+			// fmt.Printf("\ndoc total: %d", docTotal)
+			total += docTotal
 		}
-		// fmt.Printf("\ndoc total: %d", docTotal)
-		total += docTotal
+
+		fmt.Printf("\npossibilities total cnt: %d", possibilitiesCntTotal)
+
+		fmt.Printf("\n\n Total: %d", total)
+
+	} else {
+		///////////////////////
+
+		doc := extractData()
+		total := 0
+		singleTotal := 0
+		for docIdx, r := range *doc {
+			recordSize := len(r.record)
+			numbersSize := len(r.numbers)
+
+			possibilities := generateAllPossibilitiesWithEarlyValidation(r.record, r.numbers)
+			noMultiplicationPossibilitiesCnt := len(possibilities)
+			singleTotal += noMultiplicationPossibilitiesCnt
+			const expectedMultiplication = 5
+			multiplier := 2
+
+			record := make([]byte, recordSize*multiplier+(multiplier-1))
+			numbers := make([]int, numbersSize*multiplier)
+
+			for i := 0; i < multiplier; i++ {
+				copy(record[i*recordSize+i:recordSize*(i+1)+i], r.record)
+				if i < multiplier-1 {
+					record[recordSize*(i+1)+i] = unknown
+				}
+				copy(numbers[i*numbersSize:numbersSize*(i+1)], r.numbers)
+			}
+
+			possibilities = generateAllPossibilitiesWithEarlyValidation(record, numbers)
+			docTotal := len(possibilities)
+			divider := float64(docTotal) / float64(noMultiplicationPossibilitiesCnt)
+			intD := int(divider)
+			for i := 0; i < expectedMultiplication-multiplier; i++ {
+				docTotal *= intD
+			}
+			fmt.Printf("\n%3d. %d | %d | %f | %d", docIdx, noMultiplicationPossibilitiesCnt, len(possibilities), divider, docTotal)
+
+			// fmt.Printf("\ndoc total: %d", docTotal)
+			total += docTotal
+			// break // TODO:
+		}
+
+		fmt.Printf("\n\n singleTotal: %d", singleTotal)
+		fmt.Printf("\n\n Total: %d", total)
 	}
-
-	fmt.Printf("\npossibilities total cnt: %d", possibilitiesCntTotal)
-
-	fmt.Printf("\n\n Total: %d", total)
-
-	///////////////////////
-
-	// for _, r := range *doc {
-	// 	recordSize := len(r.record)
-	// 	numbersSize := len(r.numbers)
-	// 	record := make([]byte, recordSize*5+4)
-	// 	numbers := make([]int, numbersSize*5)
-
-	// 	for i := 0; i < 5; i++ {
-	// 		copy(record[i*recordSize+i:recordSize*(i+1)+i], r.record)
-	// 		if i < 4 {
-	// 			record[recordSize*(i+1)+i] = unknown
-	// 		}
-	// 		copy(numbers[i*numbersSize:numbersSize*(i+1)], r.numbers)
-	// 	}
-
-	// 	possibilities := generateAllPossibilitiesWithEarlyValidation(record, numbers)
-	// 	possibilitiesCntTotal += len(possibilities)
-	// 	docTotal := 0
-	// 	for _, p := range possibilities {
-	// 		if isPossible(p, r.numbers) {
-	// 			docTotal++
-	// 		}
-	// 	}
-	// 	// fmt.Printf("\ndoc total: %d", docTotal)
-	// 	total += docTotal
-
-	// 	break // TODO:
-	// }
-
-	// fmt.Printf("\n\n Total: %d", total)
-
 }
 
 // appendOption assumes that buff is not empty
@@ -342,11 +353,17 @@ func generateAllPossibilitiesWithEarlyValidation(record []byte, numbers []int) [
 			c := make([]byte, recordSize)
 			copy(c, record)
 			c[k] = operational
-			buff = append(buff, c)
+			if isPossible(c, numbers) {
+				buff = append(buff, c)
+			}
+
 			c = make([]byte, recordSize)
 			copy(c, record)
 			c[k] = damaged
-			buff = append(buff, c)
+			// buff = append(buff, c)
+			if isPossible(c, numbers) {
+				buff = append(buff, c)
+			}
 			continue
 		}
 
