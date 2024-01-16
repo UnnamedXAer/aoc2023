@@ -11,8 +11,11 @@ import (
 )
 
 type rowDocumentation struct {
-	record  []byte
-	numbers []int
+	record         []byte
+	numbers        []int
+	unknownCnt     int
+	operationalCnt int
+	damagedCnt     int
 }
 
 type documentation []*rowDocumentation
@@ -27,16 +30,19 @@ func (d *documentation) String() string {
 
 func extractData() *documentation {
 
-	f, err := os.Open("./day12/data_t.txt")
+	f, err := os.Open("./day12/data.txt")
 	help.IfErr(err)
 
 	scanner := bufio.NewScanner(f)
 
 	doc := make(documentation, 0, 1000)
 
+	linesCnt := -1
 	for scanner.Scan() {
+		linesCnt++
 		var record []byte
 		var numbers []int
+		var unknownCnt, operationalCnt, damagedCnt int
 		var line []byte = []byte(scanner.Text())
 		lineSize := len(line)
 		i := lineSize - 1
@@ -51,11 +57,40 @@ func extractData() *documentation {
 		}
 		slices.Reverse(numbers)
 
+		j := 0
 		for k := 0; k < i; k++ {
+			j = k
+			for ; j < i && line[j] == operational; j++ {
+				// skip multiple '.'
+
+			}
+			if j != k {
+				record = append(record, operational)
+				operationalCnt++
+			}
+			if j >= i {
+				break
+			}
+
+			k = j
+			if line[k] == unknown {
+				unknownCnt++
+			} else if line[k] == damaged {
+				damagedCnt++
+			} else {
+				panic(fmt.Sprintf("\nunknown character %q in line %d, col %d", line[k], linesCnt, k))
+			}
+
 			record = append(record, line[k])
 		}
 
-		doc = append(doc, &rowDocumentation{record: record, numbers: numbers})
+		doc = append(doc, &rowDocumentation{
+			record:         record,
+			numbers:        numbers,
+			unknownCnt:     unknownCnt,
+			operationalCnt: operationalCnt,
+			damagedCnt:     damagedCnt,
+		})
 	}
 
 	return &doc
@@ -73,8 +108,8 @@ func Ex1() {
 		possibilities := generateAllPossibilities(r.record)
 		possibilitiesCntTotal += len(possibilities)
 		docTotal := 0
-		for _, p := range possibilities {
-			if isPossible(p, r.numbers) {
+		for _, record := range possibilities {
+			if isPossible(record, r.numbers) {
 				docTotal++
 			}
 		}
@@ -86,15 +121,15 @@ func Ex1() {
 	fmt.Printf("\n\n Total: %d", total)
 }
 
-func isPossible(pattern []byte, numbers []int) bool {
+func isPossible(record []byte, numbers []int) bool {
 
 	numIdx := 0
 	groupSize := 0
-	patternSize := len(pattern)
+	recordSize := len(record)
 	numbersSize := len(numbers)
 
-	for i := 0; i < patternSize; i++ {
-		b := pattern[i]
+	for i := 0; i < recordSize; i++ {
+		b := record[i]
 		if b == unknown {
 			return true
 		}
@@ -198,8 +233,8 @@ const damaged = byte('#')
 const unknown = byte('?')
 
 func Ex2() {
-	p1 := !true
-	if p1 {
+	try := 3
+	if try == 1 {
 		doc := extractData()
 		total := 0
 		possibilitiesCntTotal := 0
@@ -221,13 +256,14 @@ func Ex2() {
 
 		fmt.Printf("\n\n Total: %d", total)
 
-	} else {
+	} else if try == 2 {
 		///////////////////////
 
 		doc := extractData()
 		total := 0
 		singleTotal := 0
 		for i, r := range *doc {
+			// fmt.Printf("\nrecord: %v", string(r.record))
 			docIdx := i + 1
 			recordSize := len(r.record)
 			numbersSize := len(r.numbers)
@@ -236,7 +272,7 @@ func Ex2() {
 			noMultiplicationPossibilitiesCnt := len(possibilities)
 			singleTotal += noMultiplicationPossibilitiesCnt
 			const expectedMultiplication = 5
-			const multiplier = 2
+			const multiplier = 5
 
 			record := make([]byte, recordSize*multiplier+(multiplier-1))
 			numbers := make([]int, numbersSize*multiplier)
@@ -266,7 +302,92 @@ func Ex2() {
 
 		fmt.Printf("\n\n singleTotal: %d", singleTotal)
 		fmt.Printf("\n\n Total: %d", total)
+	} else if try == 3 {
+		ex3Try3()
+	} else {
+		panic("wrong part value")
 	}
+}
+
+func ex3Try3() {
+	doc := extractData()
+	total := 0
+	singleTotal := 0
+	for _, r := range *doc {
+		// fmt.Printf("\nrecord: %v", string(r.record))
+		// docIdx := i + 1
+		recordSize := len(r.record)
+		numbersSize := len(r.numbers)
+
+		possibilities := generateAllPossibilitiesWithEarlyValidation(r.record, r.numbers)
+		noMultiplicationPossibilitiesCnt := len(possibilities)
+		singleTotal += noMultiplicationPossibilitiesCnt
+		const multiplier = 3
+
+		record := make([]byte, recordSize*multiplier+(multiplier-1))
+		numbers := make([]int, numbersSize*multiplier)
+		unknownCnt := r.unknownCnt * multiplier
+
+		for i := 0; i < multiplier; i++ {
+			copy(record[i*recordSize+i:recordSize*(i+1)+i], r.record)
+			if i < multiplier-1 {
+				record[recordSize*(i+1)+i] = unknown
+				unknownCnt++
+			}
+			copy(numbers[i*numbersSize:numbersSize*(i+1)], r.numbers)
+		}
+
+		// fmt.Printf("\n%3d. r: %v | %v", docIdx, string(record), numbers)
+		cache = make(map[string]bool, 100000)
+		docTotal := tryNext(record, -1, numbers, unknownCnt)
+		// fmt.Printf("\n%3d. %25s / %v => %5d", docIdx, string(r.record), r.numbers, docTotal)
+
+		total += docTotal
+	}
+
+	fmt.Printf("\n\n Total: %d", total)
+
+}
+
+var cache map[string]bool
+
+func tryNext(record []byte, pos int, numbers []int, unknownLeft int) int {
+	pos += 1
+
+	if pos == len(record) {
+		return 0
+	}
+	cnt := 0
+
+	if record[pos] == unknown {
+		unknownLeft -= 1
+
+		rec := make([]byte, len(record))
+		copy(rec, record)
+		rec[pos] = operational
+		possible, ok := cache[string(rec)]
+		if ok {
+			fmt.Printf("\n hit: %s, %t", string(rec), possible)
+		}
+		if isPossible(rec, numbers) {
+			if unknownLeft == 0 {
+				cnt++
+			}
+			cnt += tryNext(rec, pos, numbers, unknownLeft)
+		}
+
+		copy(rec, record)
+		rec[pos] = damaged
+		if isPossible(rec, numbers) {
+			if unknownLeft == 0 {
+				cnt++
+			}
+			cnt += tryNext(rec, pos, numbers, unknownLeft)
+		}
+		return cnt
+	}
+
+	return tryNext(record, pos, numbers, unknownLeft)
 }
 
 // appendOption assumes that buff is not empty
