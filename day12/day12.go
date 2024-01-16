@@ -227,7 +227,8 @@ func Ex2() {
 		doc := extractData()
 		total := 0
 		singleTotal := 0
-		for docIdx, r := range *doc {
+		for i, r := range *doc {
+			docIdx := i + 1
 			recordSize := len(r.record)
 			numbersSize := len(r.numbers)
 
@@ -235,7 +236,7 @@ func Ex2() {
 			noMultiplicationPossibilitiesCnt := len(possibilities)
 			singleTotal += noMultiplicationPossibilitiesCnt
 			const expectedMultiplication = 5
-			multiplier := 2
+			const multiplier = 2
 
 			record := make([]byte, recordSize*multiplier+(multiplier-1))
 			numbers := make([]int, numbersSize*multiplier)
@@ -252,6 +253,7 @@ func Ex2() {
 			docTotal := len(possibilities)
 			divider := float64(docTotal) / float64(noMultiplicationPossibilitiesCnt)
 			intD := int(divider)
+
 			for i := 0; i < expectedMultiplication-multiplier; i++ {
 				docTotal *= intD
 			}
