@@ -30,7 +30,7 @@ func (d *documentation) String() string {
 
 func extractData() *documentation {
 
-	f, err := os.Open("./day12/data.txt")
+	f, err := os.Open("./day12/data_t.txt")
 	help.IfErr(err)
 
 	scanner := bufio.NewScanner(f)
@@ -302,26 +302,26 @@ func Ex2() {
 		fmt.Printf("\n\n singleTotal: %d", singleTotal)
 		fmt.Printf("\n\n Total: %d", total)
 	} else if try == 3 {
-		ex3Try3()
+		ex2Try3()
 	} else {
 		panic("wrong part value")
 	}
 }
 
-func ex3Try3() {
+func ex2Try3() {
 	doc := extractData()
 	total := 0
 	singleTotal := 0
-	for _, r := range *doc {
+	for i, r := range *doc {
 		// fmt.Printf("\nrecord: %v", string(r.record))
-		// docIdx := i + 1
+		docIdx := i + 1
 		recordSize := len(r.record)
 		numbersSize := len(r.numbers)
 
 		possibilities := generateAllPossibilitiesWithEarlyValidation(r.record, r.numbers)
 		noMultiplicationPossibilitiesCnt := len(possibilities)
 		singleTotal += noMultiplicationPossibilitiesCnt
-		const multiplier = 3
+		const multiplier = 5
 
 		record := make([]byte, recordSize*multiplier+(multiplier-1))
 		numbers := make([]int, numbersSize*multiplier)
@@ -339,7 +339,7 @@ func ex3Try3() {
 		// fmt.Printf("\n%3d. r: %v | %v", docIdx, string(record), numbers)
 		cache = make(map[string]bool, 100000)
 		docTotal := tryNext(record, -1, numbers, unknownCnt)
-		// fmt.Printf("\n%3d. %25s / %v => %5d", docIdx, string(r.record), r.numbers, docTotal)
+		fmt.Printf("\n%3d. %25s / %v => %5d", docIdx, string(r.record), r.numbers, docTotal)
 
 		total += docTotal
 	}
@@ -353,63 +353,77 @@ var cache map[string]bool
 func tryNext(record []byte, pos int, numbers []int, unknownLeft int) int {
 	pos += 1
 
+	for ; pos < len(record) && record[pos] != unknown; pos++ {
+	}
+
 	if pos == len(record) {
 		return 0
 	}
+
+	unknownLeft -= 1
+
 	cnt := 0
-
-	if record[pos] == unknown {
-		unknownLeft -= 1
-
-		rec := make([]byte, len(record))
-		copy(rec, record)
-		rec[pos] = operational
-		// possible, ok := cache[string(rec)]
-		// if ok {
-		// 	fmt.Printf("\n hit: %s, %t", string(rec), possible)
-		// }
-		if isPossible(rec, numbers) {
-			if unknownLeft == 0 {
-				cnt++
-			}
-
-			cnt += tryNext(rec, pos, numbers, unknownLeft)
-		}
-
-		copy(rec, record)
-		rec[pos] = damaged
-		if isPossible(rec, numbers) {
-			if unknownLeft == 0 {
-				cnt++
-			}
-			cnt += tryNext(rec, pos, numbers, unknownLeft)
-		}
-		return cnt
-	}
-
-	return tryNext(record, pos, numbers, unknownLeft)
+	cnt += tryWith(operational, record, pos, numbers, unknownLeft)
+	cnt += tryWith(damaged, record, pos, numbers, unknownLeft)
+	return cnt
 }
 
-func isPossibleWithMoreInfo(record []byte, numbers []int) bool {
+func tryWith(spring byte, record []byte, pos int, numbers []int, unknownLeft int) int {
+	cnt := 0
 
-	numIdx := 0
+	rec := make([]byte, len(record))
+	copy(rec, record)
+	rec[pos] = spring // operational
+
+	// possible, ok := cache[string(rec)]
+	// if ok {
+	// 	fmt.Printf("\n hit: %s, %t", string(rec), possible)
+	// }
+
+	isOk, numIdx, lastPassedGroupEndPos := isPossibleWithMoreInfo(rec, numbers)
+
+	// fmt.Printf("\nfor: %4v, len: %3d, ok: %5t, numIdx: %3v, passedGroups: %3v", string(rec), len(rec), isOk, numIdx, lastPassedGroupEndPos)
+	if isOk {
+		if unknownLeft == 0 {
+			cnt++
+		}
+
+		if unknownLeft > 0 {
+			rec := rec[lastPassedGroupEndPos:] // move these inside ifs and calc len by len - numIdx
+			numbs := numbers[numIdx:]
+			posNew := pos
+			if lastPassedGroupEndPos != 0 {
+				posNew = 0
+			}
+			cnt += tryNext(rec, posNew, numbs, unknownLeft)
+		}
+
+	}
+
+	return cnt
+}
+
+func isPossibleWithMoreInfo(record []byte, numbers []int) (isOk bool, numIdx int, lastPassedGroupEndPos int) {
+
 	groupSize := 0
 	recordSize := len(record)
 	numbersSize := len(numbers)
 
-	for i := 0; i < recordSize; i++ {
+	i := 0
+	for ; i < recordSize; i++ {
 		b := record[i]
 		if b == unknown {
-			return true
+			return true, numIdx, lastPassedGroupEndPos
 		}
 		if b == operational {
 			if groupSize > 0 {
 				if numIdx >= numbersSize {
-					return false
+					return false, numIdx, lastPassedGroupEndPos
 				}
 				if groupSize != numbers[numIdx] {
-					return false
+					return false, numIdx, lastPassedGroupEndPos
 				}
+				lastPassedGroupEndPos = i
 				numIdx++
 			}
 			groupSize = 0
@@ -417,30 +431,27 @@ func isPossibleWithMoreInfo(record []byte, numbers []int) bool {
 		}
 		groupSize++
 		if numIdx < numbersSize && groupSize > numbers[numIdx] {
-			return false
+			return false, numIdx, lastPassedGroupEndPos
 		}
 	}
 
 	if groupSize > 0 {
 		if numIdx != numbersSize-1 {
-			return false
+			return false, numIdx, lastPassedGroupEndPos
 		}
 
 		if numbers[numIdx] != groupSize {
-			return false
+			return false, numIdx, lastPassedGroupEndPos
 		}
 
-		// fmt.Printf("\nP: %v | %v", string(pattern), numbers)
-		return true
+		return true, numIdx + 1, len(record)
 	}
 
 	if numIdx != numbersSize {
-		return false
+		return false, numIdx, lastPassedGroupEndPos
 	}
 
-	// fmt.Printf("\nP: %v | %v", string(pattern), numbers)
-	return true
-
+	return true, numIdx, len(record)
 }
 
 // appendOption assumes that buff is not empty
