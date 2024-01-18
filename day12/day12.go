@@ -173,7 +173,6 @@ func isPossible(record []byte, numbers []int) bool {
 	return true
 
 }
-
 func generateAllPossibilities(record []byte) [][]byte {
 	recordSize := len(record)
 
@@ -365,14 +364,15 @@ func tryNext(record []byte, pos int, numbers []int, unknownLeft int) int {
 		rec := make([]byte, len(record))
 		copy(rec, record)
 		rec[pos] = operational
-		possible, ok := cache[string(rec)]
-		if ok {
-			fmt.Printf("\n hit: %s, %t", string(rec), possible)
-		}
+		// possible, ok := cache[string(rec)]
+		// if ok {
+		// 	fmt.Printf("\n hit: %s, %t", string(rec), possible)
+		// }
 		if isPossible(rec, numbers) {
 			if unknownLeft == 0 {
 				cnt++
 			}
+
 			cnt += tryNext(rec, pos, numbers, unknownLeft)
 		}
 
@@ -388,6 +388,59 @@ func tryNext(record []byte, pos int, numbers []int, unknownLeft int) int {
 	}
 
 	return tryNext(record, pos, numbers, unknownLeft)
+}
+
+func isPossibleWithMoreInfo(record []byte, numbers []int) bool {
+
+	numIdx := 0
+	groupSize := 0
+	recordSize := len(record)
+	numbersSize := len(numbers)
+
+	for i := 0; i < recordSize; i++ {
+		b := record[i]
+		if b == unknown {
+			return true
+		}
+		if b == operational {
+			if groupSize > 0 {
+				if numIdx >= numbersSize {
+					return false
+				}
+				if groupSize != numbers[numIdx] {
+					return false
+				}
+				numIdx++
+			}
+			groupSize = 0
+			continue
+		}
+		groupSize++
+		if numIdx < numbersSize && groupSize > numbers[numIdx] {
+			return false
+		}
+	}
+
+	if groupSize > 0 {
+		if numIdx != numbersSize-1 {
+			return false
+		}
+
+		if numbers[numIdx] != groupSize {
+			return false
+		}
+
+		// fmt.Printf("\nP: %v | %v", string(pattern), numbers)
+		return true
+	}
+
+	if numIdx != numbersSize {
+		return false
+	}
+
+	// fmt.Printf("\nP: %v | %v", string(pattern), numbers)
+	return true
+
 }
 
 // appendOption assumes that buff is not empty
