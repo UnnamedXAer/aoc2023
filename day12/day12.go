@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/unnamedxaer/aoc2023/help"
 	"golang.org/x/exp/slices"
@@ -30,7 +31,7 @@ func (d *documentation) String() string {
 
 func extractData() *documentation {
 
-	f, err := os.Open("./day12/data_t.txt")
+	f, err := os.Open("./day12/data.txt")
 	help.IfErr(err)
 
 	scanner := bufio.NewScanner(f)
@@ -310,77 +311,130 @@ func Ex2() {
 
 func ex2Try3() {
 	doc := extractData()
-	total := 0
-	singleTotal := 0
-	for i, r := range *doc {
-		// fmt.Printf("\nrecord: %v", string(r.record))
-		docIdx := i + 1
-		recordSize := len(r.record)
-		numbersSize := len(r.numbers)
+	totalInt := 0
 
-		possibilities := generateAllPossibilitiesWithEarlyValidation(r.record, r.numbers)
-		noMultiplicationPossibilitiesCnt := len(possibilities)
-		singleTotal += noMultiplicationPossibilitiesCnt
-		const multiplier = 5
+	cache = resultCache{data: make(map[string]int, 5_000_000)}
 
-		record := make([]byte, recordSize*multiplier+(multiplier-1))
-		numbers := make([]int, numbersSize*multiplier)
-		unknownCnt := r.unknownCnt * multiplier
+	docTotal := make(chan int)
+	jobs := make(chan *rowDocumentation, 10)
 
-		for i := 0; i < multiplier; i++ {
-			copy(record[i*recordSize+i:recordSize*(i+1)+i], r.record)
-			if i < multiplier-1 {
-				record[recordSize*(i+1)+i] = unknown
-				unknownCnt++
-			}
-			copy(numbers[i*numbersSize:numbersSize*(i+1)], r.numbers)
+	go processJobs(jobs, docTotal)
+
+	go func() {
+		for _, r := range *doc {
+			jobs <- r
 		}
+		close(jobs)
+	}()
 
-		// fmt.Printf("\n%3d. r: %v | %v", docIdx, string(record), numbers)
-		cache = make(map[string]bool, 100000)
-		docTotal := tryNext(record, -1, numbers, unknownCnt)
-		fmt.Printf("\n%3d. %25s / %v => %5d", docIdx, string(r.record), r.numbers, docTotal)
-
-		total += docTotal
+	for k := 0; k < len(*doc); k++ {
+		totalInt += <-docTotal
+		// fmt.Printf("\n%3d. jobs processed - with total: %10d", k+1, totalInt)
 	}
 
-	fmt.Printf("\n\n Total: %d", total)
-
+	fmt.Printf("\n\n Total: %d, | %d", totalInt, len(cache.data))
 }
 
-var cache map[string]bool
+func processJobs(jobs <-chan *rowDocumentation, results chan<- int) {
+	i := 0
+	for job := range jobs {
+		i++
+		go func(i int, r *rowDocumentation) {
+			results <- calcDocument(i, r)
+		}(i, job)
+	}
+}
+
+func calcDocument(i int, r *rowDocumentation) int {
+	// docIdx := i + 1
+	recordSize := len(r.record)
+	numbersSize := len(r.numbers)
+
+	const multiplier = 5
+
+	record := make([]byte, recordSize*multiplier+(multiplier-1))
+	numbers := make([]int, numbersSize*multiplier)
+	unknownCnt := r.unknownCnt * multiplier
+
+	for i := 0; i < multiplier; i++ {
+		copy(record[i*recordSize+i:recordSize*(i+1)+i], r.record)
+		if i < multiplier-1 {
+			record[recordSize*(i+1)+i] = unknown
+			unknownCnt++
+		}
+		copy(numbers[i*numbersSize:numbersSize*(i+1)], r.numbers)
+	}
+
+	docTotal := tryNext(record, -1, numbers, unknownCnt)
+	// fmt.Printf("\n%3d. %25s / %v => %5d", docIdx, string(r.record), r.numbers, docTotal)
+
+	return docTotal
+}
+
+type resultCache struct {
+	data map[string]int
+	mu   sync.RWMutex
+}
+
+// var cache = sync.Map{}
+
+func (c *resultCache) Store(key string, value int) {
+	c.mu.Lock()
+	c.data[key] = value
+	c.mu.Unlock()
+}
+
+func (c *resultCache) Load(key string) (int, bool) {
+	c.mu.RLock()
+	res, ok := c.data[key]
+	c.mu.RUnlock()
+
+	return res, ok
+}
+
+var cache resultCache
 
 func tryNext(record []byte, pos int, numbers []int, unknownLeft int) int {
 	pos += 1
+	cnt := 0
 
-	for ; pos < len(record) && record[pos] != unknown; pos++ {
+	recordSize := len(record)
+	for ; pos < recordSize && record[pos] != unknown; pos++ {
 	}
 
-	if pos == len(record) {
-		return 0
+	if pos == recordSize {
+		return cnt
 	}
 
 	unknownLeft -= 1
 
-	cnt := 0
+	key := string(record)
+	for _, v := range numbers {
+		key += string(v)
+	}
+
+	res, ok := cache.Load(key)
+	if ok {
+		// fmt.Printf("\n hit: %d, cnt: %d -> %t | %s", old, cnt, eq, key)
+		// return res.(int)
+		return res
+	}
+
 	cnt += tryWith(operational, record, pos, numbers, unknownLeft)
 	cnt += tryWith(damaged, record, pos, numbers, unknownLeft)
+
+	cache.Store(key, cnt)
+	// cache[key] = cnt
+
 	return cnt
 }
 
 func tryWith(spring byte, record []byte, pos int, numbers []int, unknownLeft int) int {
 	cnt := 0
 
-	rec := make([]byte, len(record))
-	copy(rec, record)
-	rec[pos] = spring // operational
+	record[pos] = spring
 
-	// possible, ok := cache[string(rec)]
-	// if ok {
-	// 	fmt.Printf("\n hit: %s, %t", string(rec), possible)
-	// }
-
-	isOk, numIdx, lastPassedGroupEndPos := isPossibleWithMoreInfo(rec, numbers)
+	isOk, numIdx, lastPassedGroupEndPos := isPossibleWithMoreInfo(record, numbers)
 
 	// fmt.Printf("\nfor: %4v, len: %3d, ok: %5t, numIdx: %3v, passedGroups: %3v", string(rec), len(rec), isOk, numIdx, lastPassedGroupEndPos)
 	if isOk {
@@ -389,16 +443,16 @@ func tryWith(spring byte, record []byte, pos int, numbers []int, unknownLeft int
 		}
 
 		if unknownLeft > 0 {
-			rec := rec[lastPassedGroupEndPos:] // move these inside ifs and calc len by len - numIdx
-			numbs := numbers[numIdx:]
 			posNew := pos
 			if lastPassedGroupEndPos != 0 {
 				posNew = 0
 			}
-			cnt += tryNext(rec, posNew, numbs, unknownLeft)
+
+			cnt += tryNext(record[lastPassedGroupEndPos:], posNew, numbers[numIdx:], unknownLeft)
 		}
 
 	}
+	record[pos] = unknown
 
 	return cnt
 }
