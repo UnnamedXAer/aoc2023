@@ -45,6 +45,8 @@ func extractData() (any, any) {
 		line := scanner.Bytes()
 	}
 
+	help.IfErr(scanner.Err())
+
 	return nil, nil
 }
 
