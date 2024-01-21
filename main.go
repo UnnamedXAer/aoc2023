@@ -40,9 +40,9 @@ func main() {
 	// fmt.Printf("\n--------------------------\n")
 	// measure(day12.Ex2)
 
-	measure(day13.Ex1)
+	// measure(day13.Ex1)
 	// fmt.Printf("\n--------------------------\n")
-	// measure(day13.Ex2)
+	measure(day13.Ex2)
 }
 
 func measure(fn func()) {
