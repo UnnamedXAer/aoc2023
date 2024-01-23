@@ -34,7 +34,7 @@ func extractData() [][]byte {
 		return 0, nil, nil
 	}
 
-	f, err := os.Open("./day15/data_t.txt")
+	f, err := os.Open("./day15/data.txt")
 	help.IfErr(err)
 
 	scanner := bufio.NewScanner(f)
@@ -55,13 +55,13 @@ func Ex1() {
 	total := 0
 	input := extractData()
 	for _, str := range input {
-		total += process_hash([]byte(str))
+		total += hash([]byte(str))
 	}
 
 	fmt.Printf("\n\n Total: %d", total)
 }
 
-func process_hash(str []byte) int {
+func hash(str []byte) int {
 	currValue := 0
 	for _, b := range str {
 		currValue += int(b)
@@ -92,38 +92,42 @@ func Ex2() {
 	lenses := make([]lens, len(input))
 
 	boxes := make([]*theBox, 256)
-	for _, b := range boxes {
-		b.lenses = make([]lens, 0, 4000/256)
+	for i := 0; i < 256; i++ {
+		boxes[i] = &theBox{
+			lenses: make([]lens, 0, 4000/256),
+		}
 	}
 
 	for i, str := range input {
 		l := parseStep(str)
 		lenses[i] = l
-		fmt.Printf("\n %+v", l)
 	}
 
-	currentBoxIdx := 0
 	for _, l := range lenses {
+		boxIdx := hash([]byte(l.label))
+		// fmt.Printf("\n [%s %d] => %d", l.label, l.focalLen, boxIdx)
 		switch l.opt {
 		case remove:
-			_, ok := removeLens(boxes, l, currentBoxIdx)
-			if ok {
-				currentBoxIdx += 2
-			} else {
-				currentBoxIdx += 1
-			}
+			removeLens(boxes, l, boxIdx)
 		case upsert:
-			upsertLens(boxes, l, currentBoxIdx)
+			upsertLens(boxes, l, boxIdx)
 		}
 	}
 
 	for i, b := range boxes {
-		fmt.Printf("\n\nBox %4d:", i)
-		for _, l := range b.lenses {
-			fmt.Printf(" [%s %d]", l.label, l.focalLen)
+		if len(b.lenses) == 0 {
+			continue
 		}
-		fmt.Printf("\n")
-		b.lenses = make([]lens, 0, 4000/256)
+		focalLen := 0
+		// fmt.Printf("\nBox %4d:", i)
+		for k, l := range b.lenses {
+			lpopwer := calcFocusingPower(l.focalLen, i, k)
+			// fmt.Printf(" [%s %d -> %2d]", l.label, l.focalLen, lpopwer)
+			focalLen += lpopwer
+		}
+		// fmt.Printf(" -> %3d", focalLen)
+		total += focalLen
+
 	}
 
 	fmt.Printf("\n\n Total: %d", total)
@@ -139,7 +143,7 @@ func removeLens(boxes []*theBox, l lens, boxIdx int) (int, bool) {
 			for k := i + 1; k < len(lenses); k++ {
 				lenses[k-1] = lenses[k]
 			}
-			boxes[boxIdx].lenses = lenses
+			boxes[boxIdx].lenses = lenses[:len(lenses)-1]
 			return i, true
 		}
 	}
