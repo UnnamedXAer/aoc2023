@@ -40,12 +40,22 @@ func extractData() [][]int {
 type direction int
 
 const (
-	north direction = iota
+	unknown direction = iota
+	noMove
+	north
 	south
 	west
 	east
 )
 
+var directionsTranslation = [...]string{
+	"unknown",
+	"no move",
+	"north",
+	"south",
+	"west",
+	"east",
+}
 var offsets = [...][2]int{
 	{-1, 0},
 	{1, 0},
@@ -73,13 +83,55 @@ func Ex1() {
 
 	graph := buildGraph(blocks)
 
-	p, d := Dijkstra(0, graph)
+	p, d := Dijkstra(0, graph, size)
+
+	pos := size*size - 1
+	logs := ""
+	fmt.Println()
+	for pos > -1 {
+		direction := getDirection(pos, p[pos], size)
+		logs = fmt.Sprintf("\n I'm at: %3d, came from: %3d, moving: %3s", pos, p[pos], directionsTranslation[direction]) + logs
+		pos = p[pos]
+	}
+
+	fmt.Println(logs)
 
 	fmt.Printf("\n\np:  %+v", p)
 	fmt.Printf("\n\nd:  %+v", d)
+
+	fmt.Printf("\n\n  Total: %d", d[size*size-1])
 }
 
-func Dijkstra(startAt int, weights [][]int) (paths, distances []int) {
+func getRowAndCol(n int, size int) (row, col int) {
+	row = n / size
+	col = n - (row * size)
+	return row, col
+}
+
+func getDirection(idx int, prevIdx int, size int) direction {
+	if prevIdx < 0 {
+		return noMove
+	}
+	r, c := getRowAndCol(idx, size)
+	pr, pc := getRowAndCol(prevIdx, size)
+
+	if r < pr {
+		return north
+	}
+	if r > pr {
+		return south
+	}
+	if c < pc {
+		return west
+	}
+	if c > pc {
+		return east
+	}
+
+	return unknown
+}
+
+func Dijkstra(startAt int, weights [][]int, size int) (paths, distances []int) {
 	V := len(weights)
 	var v, w, d int
 	q := priorityQueue{}
@@ -92,13 +144,40 @@ func Dijkstra(startAt int, weights [][]int) (paths, distances []int) {
 	distances[startAt] = 0
 	q.enqueue(startAt, weights[startAt][startAt])
 
+	var prevDirection direction
+	var straightSteps int
+
 	for !q.isEmpty() {
 		v = q.dequeue().key
 
 		for w = 0; w < V; w++ {
-			// if Adj[v][w] == 1 {
-			if weights[v][w] > 0 /* and steps <4*/ {
-				// TODO: can we travers  back here to check direction? or can we track the direction in each step?
+
+			// ///////////////////
+			pos := w
+			fmt.Printf("\npaths: ")
+			for pos < len(paths) && pos > 0 {
+				fmt.Printf(", %d", pos)
+				dir := getDirection(pos, paths[pos], size)
+				if dir == prevDirection {
+					straightSteps++
+					if straightSteps > 3 {
+						break
+					}
+				} else {
+					prevDirection = dir
+					break
+				}
+				pos = paths[pos]
+			}
+
+			fmt.Printf(" - direction: %s", directionsTranslation[prevDirection])
+
+			// fmt.Printf(", %d", pos)
+			/////////////////////
+
+			if weights[v][w] > 0 {
+				// if straightSteps < 4 {
+				// TODO: can we travers back to check direction? or can we track the direction in each step?
 				d = distances[v] + weights[v][w]
 
 				if distances[w] == -1 {
@@ -112,6 +191,7 @@ func Dijkstra(startAt int, weights [][]int) (paths, distances []int) {
 					q.updatePriority(w, d)
 					paths[w] = v
 				}
+				// }
 			}
 		}
 	}
