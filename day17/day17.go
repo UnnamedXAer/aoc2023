@@ -31,10 +31,6 @@ func extractData() [][]int {
 
 	help.IfErr(scanner.Err())
 
-	if len(blocks) != len(blocks[0]) {
-		panic("blocks not a square")
-	}
-
 	return blocks
 }
 
@@ -47,6 +43,7 @@ const (
 	south
 	west
 	east
+	_directionsCnt
 )
 
 var directionsTranslation = [...]string{
@@ -83,16 +80,6 @@ func Ex1() {
 
 	total := solvePart1(blocks, size)
 
-	// position := d[size-1][size-1]
-	// total := math.MaxInt
-	// for _, dirs := range position.dirs {
-	// 	for _, heatLoss := range dirs {
-	// 		if heatLoss < total {
-	// 			total = heatLoss
-	// 		}
-	// 	}
-	// }
-
 	fmt.Printf("\n\n  Total: %d", total)
 }
 
@@ -101,7 +88,8 @@ type PositionDirInfo []int // [3]int
 type Position struct {
 	y, x     int
 	heatLoss int
-	dirs     map[direction]PositionDirInfo
+	dirs     [_directionsCnt]PositionDirInfo
+	// dirs     map[direction]PositionDirInfo
 }
 
 func solvePart1(graph [][]int, size int) int {
@@ -120,11 +108,13 @@ func solvePart1(graph [][]int, size int) int {
 				x:        j,
 				heatLoss: graph[i][j],
 
-				dirs: map[direction]PositionDirInfo{
-					north: {v, v, v},
-					south: {v, v, v},
-					west:  {v, v, v},
-					east:  {v, v, v},
+				dirs: [_directionsCnt]PositionDirInfo{
+					{v, v, v},
+					{v, v, v},
+					{v, v, v},
+					{v, v, v},
+					{v, v, v},
+					{v, v, v},
 				},
 			}
 
@@ -179,7 +169,7 @@ func moveForPart1(p point, positions [][]Position, heading direction, size int) 
 	const MAX_STEPS int = 3
 
 	nextP := addOffsetToPoint(p, heading)
-	if outsizeRange(size, nextP.y, nextP.x) {
+	if outsizeRange(size, size, nextP.y, nextP.x) {
 		return nil
 	}
 
@@ -188,7 +178,6 @@ func moveForPart1(p point, positions [][]Position, heading direction, size int) 
 	// if we were heading west in previous step(s)
 	if p.dir == heading {
 
-		// newDistance := positionFrom.dirs[north][p.distance] + 1
 		newDistance := p.distance + 1
 		if newDistance >= MAX_STEPS {
 			return nil
@@ -232,11 +221,7 @@ func moveForPart1(p point, positions [][]Position, heading direction, size int) 
 
 	newDistance := 0
 	positionTo := &positions[nextP.y][nextP.x]
-	currHeatLoss := 0
-	// point at 0,0 has dir noMove
-	if p.dir >= north {
-		currHeatLoss = positionFrom.dirs[p.dir][p.distance]
-	}
+	currHeatLoss := positionFrom.dirs[p.dir][p.distance]
 	nextHeatLoss := currHeatLoss + positionTo.heatLoss
 
 	if nextHeatLoss >= positionTo.dirs[heading][newDistance] {
@@ -259,45 +244,23 @@ func addOffsetToPoint(p point, dir direction) point {
 	return p
 }
 
-func getRowAndCol(n int, size int) (row, col int) {
-	row = n / size
-	col = n - (row * size)
-	return row, col
+// //////////////////////////////////////////////////////////////////////////////////
+func Ex2() {
+	blocks := extractData()
+	ySize := len(blocks)
+	xSize := len(blocks[0])
+
+	total := solvePart2(blocks, ySize, xSize)
+
+	fmt.Printf("\n\n Ex2:  Total: %d", total)
 }
 
-func getDirection(idx int, prevIdx int, size int) direction {
-	if prevIdx < 0 {
-		return noMove
-	}
-	r, c := getRowAndCol(idx, size)
-	pr, pc := getRowAndCol(prevIdx, size)
+func solvePart2(graph [][]int, ySize, xSize int) int {
 
-	if r < pr {
-		return north
-	}
-	if r > pr {
-		return south
-	}
-	if c < pc {
-		return west
-	}
-	if c > pc {
-		return east
-	}
-
-	return unknown
-}
-
-func getIdx(r, c, size int) int {
-	return r*size + c
-}
-
-func solvePart2(graph [][]int, size int) int {
-
-	positions := make([][]Position, size)
-	for i := 0; i < size; i++ {
-		positions[i] = make([]Position, size)
-		for j := 0; j < size; j++ {
+	positions := make([][]Position, ySize)
+	for i := 0; i < ySize; i++ {
+		positions[i] = make([]Position, xSize)
+		for j := 0; j < xSize; j++ {
 			v := math.MaxInt
 			if i == 0 && j == 0 {
 				v = 0
@@ -308,11 +271,13 @@ func solvePart2(graph [][]int, size int) int {
 				x:        j,
 				heatLoss: graph[i][j],
 
-				dirs: map[direction]PositionDirInfo{
-					north: {v, v, v},
-					south: {v, v, v},
-					west:  {v, v, v},
-					east:  {v, v, v},
+				dirs: [_directionsCnt]PositionDirInfo{
+					{v, v, v, v, v, v, v, v, v, v},
+					{v, v, v, v, v, v, v, v, v, v},
+					{v, v, v, v, v, v, v, v, v, v},
+					{v, v, v, v, v, v, v, v, v, v},
+					{v, v, v, v, v, v, v, v, v, v},
+					{v, v, v, v, v, v, v, v, v, v},
 				},
 			}
 
@@ -327,22 +292,22 @@ func solvePart2(graph [][]int, size int) int {
 	for !q.isEmpty() {
 		p := q.pop()
 
-		nextPos := moveForPart1(p.key, positions, west, size)
+		nextPos := moveForPart2(p.key, positions, west, ySize, xSize)
 		if nextPos != nil {
 			q.push(&pqElement{key: *nextPos, priority: positions[nextPos.y][nextPos.x].heatLoss})
 		}
 
-		nextPos = moveForPart1(p.key, positions, east, size)
+		nextPos = moveForPart2(p.key, positions, east, ySize, xSize)
 		if nextPos != nil {
 			q.push(&pqElement{key: *nextPos, priority: positions[nextPos.y][nextPos.x].heatLoss})
 		}
 
-		nextPos = moveForPart1(p.key, positions, north, size)
+		nextPos = moveForPart2(p.key, positions, north, ySize, xSize)
 		if nextPos != nil {
 			q.push(&pqElement{key: *nextPos, priority: positions[nextPos.y][nextPos.x].heatLoss})
 		}
 
-		nextPos = moveForPart1(p.key, positions, south, size)
+		nextPos = moveForPart2(p.key, positions, south, ySize, xSize)
 		if nextPos != nil {
 			q.push(&pqElement{key: *nextPos, priority: positions[nextPos.y][nextPos.x].heatLoss})
 		}
@@ -350,7 +315,7 @@ func solvePart2(graph [][]int, size int) int {
 
 	currentMinHeatLoss := math.MaxInt
 
-	position := positions[size-1][size-1]
+	position := positions[ySize-1][xSize-1]
 	for _, dirs := range position.dirs {
 		for _, heatLoss := range dirs {
 			if heatLoss < currentMinHeatLoss {
@@ -362,22 +327,13 @@ func solvePart2(graph [][]int, size int) int {
 	return currentMinHeatLoss
 }
 
-// //////////////////////////////////////////////////////////////////////////////////
-func Ex2() {
-	blocks := extractData()
-	size := len(blocks)
-
-	total := solvePart2(blocks, size)
-
-	fmt.Printf("\n\n  Total: %d", total)
-}
-
 // generate next step from given step that is heading west
-func moveForPart2(p point, positions [][]Position, heading direction, size int) *point {
-	const MAX_STEPS int = 3
+func moveForPart2(p point, positions [][]Position, heading direction, ySize, xSize int) *point {
+	const MIN_STEPS int = 4 - 1
+	const MAX_STEPS int = 10 - 1
 
 	nextP := addOffsetToPoint(p, heading)
-	if outsizeRange(size, nextP.y, nextP.x) {
+	if outsizeRange(ySize, xSize, nextP.y, nextP.x) {
 		return nil
 	}
 
@@ -386,9 +342,8 @@ func moveForPart2(p point, positions [][]Position, heading direction, size int) 
 	// if we were heading west in previous step(s)
 	if p.dir == heading {
 
-		// newDistance := positionFrom.dirs[north][p.distance] + 1
 		newDistance := p.distance + 1
-		if newDistance >= MAX_STEPS {
+		if newDistance > MAX_STEPS {
 			return nil
 		}
 
@@ -400,10 +355,22 @@ func moveForPart2(p point, positions [][]Position, heading direction, size int) 
 			return nil
 		}
 
+		if nextP.y == ySize-1 && nextP.x == xSize-1 {
+			if newDistance < MIN_STEPS {
+				// fmt.Printf("\n0. cannot accept result with stepsCnt %d, heat loss: %4d | prev steps: %4d, turning %5s, from: %5s", newDistance, nextHeatLoss, p.distance, directionsTranslation[heading], directionsTranslation[p.dir])
+				return nil
+			}
+			// fmt.Printf("\n0.     accepting result with stepsCnt %d, heat loss: %4d | prev steps: %4d, turning %5s, from: %5s", newDistance, nextHeatLoss, p.distance, directionsTranslation[heading], directionsTranslation[p.dir])
+		}
+
 		positionTo.dirs[heading][newDistance] = nextHeatLoss
 
 		nextP.distance = newDistance
 		return &nextP
+	}
+
+	if p.dir != noMove && p.distance < MIN_STEPS {
+		return nil
 	}
 
 	// if we were heading e.g. east then, we cannot move back to west
@@ -430,15 +397,19 @@ func moveForPart2(p point, positions [][]Position, heading direction, size int) 
 
 	newDistance := 0
 	positionTo := &positions[nextP.y][nextP.x]
-	currHeatLoss := 0
-	// point at 0,0 has dir noMove
-	if p.dir >= north {
-		currHeatLoss = positionFrom.dirs[p.dir][p.distance]
-	}
+	currHeatLoss := positionFrom.dirs[p.dir][p.distance]
 	nextHeatLoss := currHeatLoss + positionTo.heatLoss
 
 	if nextHeatLoss >= positionTo.dirs[heading][newDistance] {
 		return nil
+	}
+
+	if nextP.y == ySize-1 && nextP.x == xSize-1 {
+		if newDistance < MIN_STEPS {
+			// fmt.Printf("\n1. cannot accept result with stepsCnt %d, heat loss: %4d | prev steps: %4d, turning %5s, from: %5s", newDistance, nextHeatLoss, p.distance, directionsTranslation[heading], directionsTranslation[p.dir])
+			return nil
+		}
+		// fmt.Printf("\n1.    accepting result with stepsCnt %d, heat loss: %4d | prev steps: %4d, turning %5s, from: %5s", newDistance, nextHeatLoss, p.distance, directionsTranslation[heading], directionsTranslation[p.dir])
 	}
 
 	positionTo.dirs[heading][newDistance] = nextHeatLoss

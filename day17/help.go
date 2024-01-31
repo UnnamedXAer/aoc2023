@@ -4,13 +4,46 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func outsizeRange(size, row, col int) bool {
+func outsizeRange(ySize, xSize, row, col int) bool {
 
-	if row < 0 || col < 0 || row == size || col == size {
+	if row < 0 || col < 0 || row == ySize || col == xSize {
 		return true
 	}
 
 	return false
+}
+
+func getRowAndCol(n int, size int) (row, col int) {
+	row = n / size
+	col = n - (row * size)
+	return row, col
+}
+
+func getDirection(idx int, prevIdx int, size int) direction {
+	if prevIdx < 0 {
+		return noMove
+	}
+	r, c := getRowAndCol(idx, size)
+	pr, pc := getRowAndCol(prevIdx, size)
+
+	if r < pr {
+		return north
+	}
+	if r > pr {
+		return south
+	}
+	if c < pc {
+		return west
+	}
+	if c > pc {
+		return east
+	}
+
+	return unknown
+}
+
+func getIdx(r, c, size int) int {
+	return r*size + c
 }
 
 func buildGraph(blocks [][]int) [][]int {

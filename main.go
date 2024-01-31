@@ -56,7 +56,7 @@ func main() {
 	// fmt.Printf("\n--------------------------\n")
 	// measure(day16.Ex2)
 
-	// measure(day17.Ex1)
+	measure(day17.Ex1)
 	// fmt.Printf("\n--------------------------\n")
 	measure(day17.Ex2)
 }
@@ -81,6 +81,9 @@ func printTime(start, end int64) {
 	} else if timeTotal < 120*1000000000 {
 		fmt.Printf("\ntime: %d s", timeTotal/1000000000)
 	} else {
-		fmt.Printf("\ntime: %d min", timeTotal/60*1000000000)
+		s := timeTotal / 1000000000
+		m := s / 60
+		s = s - (m * 60)
+		fmt.Printf("\n%d time: %d min %d s", timeTotal, m, s)
 	}
 }
