@@ -47,7 +47,7 @@ func buildGraph(blocks [][]int) [][]int {
 
 // keys with lowest priority value first
 type pqElement struct {
-	key      int
+	key      queueE
 	priority int
 }
 
@@ -89,22 +89,25 @@ func (q *priorityQueue) pop() *pqElement {
 	return min
 }
 
-func (q *priorityQueue) updatePriority(key int, priority int) {
+func (q *priorityQueue) updatePriority(incomingKey queueE, priority int) {
 
 	for _, x := range q.arr {
-		if x.key < key {
+		if x.key.x == incomingKey.x && x.key.y == incomingKey.y {
 			x.priority = priority
 			return
 		}
 	}
 
-	q.arr = append(q.arr, &pqElement{key, priority})
+	q.arr = append(q.arr, &pqElement{incomingKey, priority})
 }
 
 type queueE struct {
-	x, y int
+	x, y     int
+	distance int
+	dir      direction
 }
-type queue []*queueE
+
+type queue []queueE
 
 func (q queue) isEmpty() bool {
 	return len(q) == 0
@@ -114,19 +117,47 @@ func (q queue) len() int {
 	return len(q)
 }
 
-func (q queue) push(element *queueE) {
+func (q *queue) push(element queueE) {
 
-	q = append(q, element)
+	*q = append(*q, element)
 }
 
-func (q queue) pop() *queueE {
-	if len(q) == 0 {
-		return nil
+func (q *queue) pop() queueE {
+	if len(*q) == 0 {
+		panic("popping from empty queue")
 	}
 
-	first := q[0]
-	q[0] = nil
-	q = slices.Delete(q, 0, 0+1)
+	first := (*q)[0]
+	// q[0] = nil
+	*q = slices.Delete(*q, 0, 0+1)
+
+	return first
+}
+
+type qElementAny = any
+type queueAny []qElementAny
+
+func (q queueAny) isEmpty() bool {
+	return len(q) == 0
+}
+
+func (q queueAny) len() int {
+	return len(q)
+}
+
+func (q *queueAny) push(element qElementAny) {
+
+	*q = append(*q, element)
+}
+
+func (q *queueAny) pop() qElementAny {
+	if len(*q) == 0 {
+		panic("popping from empty queue")
+	}
+
+	first := (*q)[0]
+	// q[0] = nil
+	*q = slices.Delete(*q, 0, 0+1)
 
 	return first
 }
