@@ -25,13 +25,24 @@ func extractData() []digSpec {
 	scanner := bufio.NewScanner(f)
 
 	plan := make([]digSpec, 0, 750)
+	i := 0
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
+
+		i++
+		n := int(line[2] - '0')
+		colorIdx := 5
+
+		if line[3] != ' ' {
+			colorIdx += 1
+			n = n*10 + int(line[3]-'0')
+		}
+
 		spec := digSpec{
 			dir:   direction(line[0]),
-			len:   int(line[2] - '0'),
-			color: string(line[5 : len(line)-1]),
+			len:   n,
+			color: string(line[colorIdx : len(line)-1]),
 		}
 
 		plan = append(plan, spec)
