@@ -55,6 +55,7 @@ func extractData2() []digSpec {
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
+		lineSize := len(line)
 
 		i++
 		colorIdx := 6
@@ -63,17 +64,20 @@ func extractData2() []digSpec {
 			colorIdx += 1
 		}
 
-		n, err := strconv.ParseInt(string(line[colorIdx:len(line)-2]), 16, 64)
+		n, err := strconv.ParseInt(string(line[colorIdx:lineSize-2]), 16, 64)
 		if err != nil {
 			fmt.Printf("\n line: %3d: %v", i, err)
 			panic("\n")
 		}
 
+		dirValue := direction(line[lineSize-2] - '0')
+		// byteToDir[dirValue] = byteToDir[dirValue] // just runtime check that we are in correct range
+
 		spec := digSpec{
-			dir: direction(slices.Index(byteToDir, line[0])),
+			dir: dirValue,
 			len: int(n),
 		}
-		fmt.Printf("\n%3d. %+v", i, spec)
+		// fmt.Printf("\n%3d. %s %+v", i, string(byteToDir[spec.dir]), spec)
 
 		plan = append(plan, spec)
 	}
@@ -156,6 +160,10 @@ func printLagoon(outline outlineInfo, fill bool) [][]byte {
 
 func printLagoon2(outline outlineInfo) [][]byte {
 
+	for i, v := range outline.vertices {
+		fmt.Printf("\n%3d. %+v", i, v)
+	}
+
 	ySize := outline.sizeY
 	xSize := outline.sizeX
 
@@ -177,6 +185,14 @@ func printLagoon2(outline outlineInfo) [][]byte {
 	for _, p := range path {
 		lagoon[p.y][p.x] = '#'
 	}
+
+	// for y := 0; y < ySize; y++ {
+	// 	for x := 0; x < xSize; x++ {
+	// 		if isInside(path, point{y, x}) {
+	// 			lagoon[y][x] = '#'
+	// 		}
+	// 	}
+	// }
 
 	lagoon = append(lagoon, templateX)
 

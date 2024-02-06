@@ -22,9 +22,9 @@ type digSpec struct {
 	len int
 }
 
-// var inputNameSuffix = ""
+var inputNameSuffix = ""
 
-var inputNameSuffix = "_t"
+// var inputNameSuffix = "_t"
 
 func Ex1() {
 	plan := extractData()
@@ -164,7 +164,7 @@ func solvePart2(plan []digSpec) (int, int) {
 	fmt.Println()
 	fmt.Println("PART 2")
 	outline := extractOutlineInfo2(plan)
-	// lagoon := printLagoon2(outline)
+	// printLagoon2(outline)
 	// for _, s := range outline.vertices {
 	// 	fmt.Printf("\n %+v", s)
 	// }
@@ -326,6 +326,12 @@ func extractOutlineInfo2(plan []digSpec) outlineInfo {
 
 	sizeY := -minY + maxY + 1
 	sizeX := -minX + maxX + 1
+
+	// no real value. but easier to use if one would like to print it on the 2D
+	// for i := 0; i < len(vertices); i++ {
+	// 	vertices[i].y += -minY
+	// 	vertices[i].x += -minX
+	// }
 
 	return outlineInfo{vertices, minY, minX, maxY, maxX, sizeY, sizeX}
 }
