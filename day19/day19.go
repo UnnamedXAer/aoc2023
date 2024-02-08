@@ -83,7 +83,7 @@ func (r rule) String() string {
 
 func extractData() (Workflows, []PartRatings) {
 
-	f, err := os.Open("./day19/data.txt")
+	f, err := os.Open("./day19/data_t.txt")
 	help.IfErr(err)
 
 	scanner := bufio.NewScanner(f)
@@ -342,4 +342,95 @@ func isGt(r rule, partRatings PartRatings) (int, bool) {
 
 func Ex2() {
 
+	workflows, _ := extractData()
+	for destination, v := range workflows {
+		fmt.Printf("\n%5s:", destination)
+		for _, v := range v {
+			fmt.Printf("\n\t%s", v)
+		}
+	}
+	fmt.Println()
+	// for _, v := range ratings {
+	// 	fmt.Printf("\n%+v", v)
+	// }
+	// fmt.Println()
+	total := calcTotalPossibilities(workflows)
+
+	fmt.Printf("\n\n total: %d", total)
+}
+
+func calcTotalPossibilities(workflows Workflows) int {
+	total, ok := calcPossibilitiesOfWorkflow(startWorkflowName, workflows)
+
+	if ok {
+		return total
+	}
+	return 0
+}
+
+func calcPossibilitiesOfWorkflow(workflowName string, workflows Workflows) (int, bool) {
+	workflow := workflows[workflowName]
+
+	total := 0
+
+rulesLoop:
+	for _, r := range workflow {
+		if r.condition == emptyCondition {
+			if r.accept {
+				return total, true
+			}
+			if r.reject {
+				return total, false
+			}
+			t, ok := calcPossibilitiesOfWorkflow(r.destination, workflows)
+			if ok {
+				total += t
+				return total, true
+			}
+			return total, false
+		}
+
+		switch r.condition {
+		case lt:
+			if r.accept {
+				v := r.value - 1
+				total *= v
+				continue rulesLoop
+				// return total, true
+			}
+			if r.reject {
+				return total, false
+			}
+
+			t, ok := calcPossibilitiesOfWorkflow(r.destination, workflows)
+			if ok {
+				v := r.value - 1
+				total += v * t
+				return total, ok
+			} else {
+				return total, false
+			}
+		case gt:
+			if r.accept {
+				v := 4000 - (r.value + 1)
+				total *= v
+				return total, true
+			}
+			if r.reject {
+				return total, false
+			}
+
+			t, ok := calcPossibilitiesOfWorkflow(r.destination, workflows)
+			if ok {
+				v := 4000 - (r.value + 1)
+				total += v * t
+				continue rulesLoop
+			} else {
+				return total, false
+			}
+		}
+	}
+
+	// fmt.Print("\n we should not be here ")
+	return 0, false
 }
