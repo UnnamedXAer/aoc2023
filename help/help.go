@@ -1,5 +1,7 @@
 package help
 
+import "slices"
+
 func IfErr(err error) {
 	if err != nil {
 		panic(err)
@@ -66,4 +68,42 @@ func IsNumber(b byte) bool {
 
 type Point struct {
 	X, Y int
+}
+
+// queue
+// type QElementAny = any
+type QueueAny[T any] []T
+
+func NewQAny[T any](n ...int) QueueAny[T] {
+	size := 10
+	if len(n) > 0 {
+		size = n[0]
+	}
+
+	return make(QueueAny[T], size)
+}
+
+func (q QueueAny[T]) IsEmpty() bool {
+	return len(q) == 0
+}
+
+func (q QueueAny[T]) Len() int {
+	return len(q)
+}
+
+func (q *QueueAny[T]) Push(element T) {
+
+	*q = append(*q, element)
+}
+
+func (q *QueueAny[T]) Pop() T {
+	if len(*q) == 0 {
+		panic("popping from empty queue")
+	}
+
+	first := (*q)[0]
+	// q[0] = nil
+	*q = slices.Delete(*q, 0, 0+1)
+
+	return first
 }

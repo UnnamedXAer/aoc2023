@@ -166,31 +166,3 @@ func (q *queue) pop() queueE {
 
 	return first
 }
-
-type qElementAny = any
-type queueAny []qElementAny
-
-func (q queueAny) isEmpty() bool {
-	return len(q) == 0
-}
-
-func (q queueAny) len() int {
-	return len(q)
-}
-
-func (q *queueAny) push(element qElementAny) {
-
-	*q = append(*q, element)
-}
-
-func (q *queueAny) pop() qElementAny {
-	if len(*q) == 0 {
-		panic("popping from empty queue")
-	}
-
-	first := (*q)[0]
-	// q[0] = nil
-	*q = slices.Delete(*q, 0, 0+1)
-
-	return first
-}
