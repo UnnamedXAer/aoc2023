@@ -29,14 +29,19 @@ package day$dayNo
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 
 	"github.com/unnamedxaer/aoc2023/help"
 )
 
-func extractData() (any, any) {
+// const inputNameSuffix= ""
+const inputNameSuffix = "_t"
+const inputName = "./day$dayNo/data" + inputNameSuffix + ".txt"
 
-	f, err := os.Open("./day$dayNo/data_t.txt")
+func extractData() any {
+
+	f, err := os.Open(inputName)
 	help.IfErr(err)
 
 	scanner := bufio.NewScanner(f)
@@ -47,12 +52,18 @@ func extractData() (any, any) {
 
 	help.IfErr(scanner.Err())
 
-	return nil, nil
+	return nil
 }
 
 func Ex1() {
-	_, _ := extractData()
+	x := extractData()
+	fmt.Printf("\n%v", x)
 }
+
+EOM
+
+cat >"./day$dayNo/day${dayNo}_2.go" <<EOM
+package day$dayNo
 
 func Ex2() {
 
@@ -60,8 +71,14 @@ func Ex2() {
 
 EOM
 
-echo "Day $dayNo created."
+cat >"./day$dayNo/day${dayNo}_test.go" <<EOM
+package day${dayNo}
 
+
+EOM
+
+
+echo "Day $dayNo created."
 
 code "./day$dayNo/day$dayNo.go"
 code "./day$dayNo/data.txt"
