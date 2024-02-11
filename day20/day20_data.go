@@ -9,8 +9,9 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// const inputNameSuffix= ""
-const inputNameSuffix = "_t"
+const inputNameSuffix = ""
+
+// const inputNameSuffix = "_t"
 const inputName = "./day20/data" + inputNameSuffix + ".txt"
 
 func extractData() Platform {
@@ -46,6 +47,31 @@ func extractData() Platform {
 		modules[name] = newModule(name, mt, destinations)
 	}
 
+	for _, m := range modules {
+		c, ok := m.(*conjunctionModule)
+		if !ok {
+			continue
+		}
+
+		for _, m := range modules {
+			if !slices.Contains(m.destinations(), c.m.name) {
+				continue
+			}
+			name := ""
+			switch tmp := m.(type) {
+			case *broadcasterModule:
+				name = tmp.m.name
+			case *flipFlopModule:
+				name = tmp.m.name
+			case *conjunctionModule:
+				name = tmp.m.name
+			default:
+				panic("unknown type")
+			}
+			c.history[name] = low
+		}
+	}
+
 	help.IfErr(scanner.Err())
 
 	return modules
@@ -57,10 +83,12 @@ func newModule(name string, mt moduleType, destinations []string) Module {
 
 	switch mt {
 	case conjunction:
-		return &conjunctionModule{
+		cm := &conjunctionModule{
 			m:       m,
 			history: make(map[string]modulePulse, 5),
 		}
+
+		return cm
 	case flipFlop:
 
 		return &flipFlopModule{
