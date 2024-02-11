@@ -80,7 +80,7 @@ func NewQAny[T any](n ...int) QueueAny[T] {
 		size = n[0]
 	}
 
-	return make(QueueAny[T], size)
+	return make(QueueAny[T], 0, size)
 }
 
 func (q QueueAny[T]) IsEmpty() bool {
@@ -106,4 +106,42 @@ func (q *QueueAny[T]) Pop() T {
 	*q = slices.Delete(*q, 0, 0+1)
 
 	return first
+}
+
+// ////////////////////////////////
+type Stack[T any] []T
+
+func NewStack[T any](n ...int) Stack[T] {
+	size := 10
+	if len(n) > 0 {
+		size = n[0]
+	}
+
+	return make(Stack[T], size)
+}
+
+func (s Stack[T]) IsEmpty() bool {
+	return len(s) == 0
+}
+
+func (s Stack[T]) Len() int {
+	return len(s)
+}
+
+func (s *Stack[T]) Push(element T) {
+
+	*s = append(*s, element)
+}
+
+func (s *Stack[T]) Pop() T {
+	size := len(*s)
+	if size == 0 {
+		panic("popping from empty stack")
+	}
+
+	top := (*s)[size-1]
+	(*s)[size-1] = *new(T)
+	*s = (*s)[:size-1]
+
+	return top
 }
