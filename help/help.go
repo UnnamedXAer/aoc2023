@@ -1,6 +1,10 @@
 package help
 
-import "slices"
+import (
+	"slices"
+
+	"golang.org/x/exp/constraints"
+)
 
 func IfErr(err error) {
 	if err != nil {
@@ -64,6 +68,25 @@ func ReadNumValueFromEnd(line []byte, lastDigitPos int) (v int, vLen int) {
 
 func IsNumber(b byte) bool {
 	return b >= '0' && b <= '9'
+}
+
+func Gcd[T constraints.Integer](a, b T) T {
+	for b != 0 {
+		t := b
+		b = a % b
+		a = t
+	}
+	return a
+}
+
+func Lcm[T constraints.Integer](a, b T, integers ...T) T {
+	result := a * b / Gcd(a, b)
+
+	for i := 0; i < len(integers); i++ {
+		result = Lcm(result, integers[i])
+	}
+
+	return result
 }
 
 type Point struct {
