@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/unnamedxaer/aoc2023/day20"
+	"github.com/unnamedxaer/aoc2023/day21"
 )
 
 func main() {
@@ -70,7 +70,11 @@ func main() {
 
 	// measure(day20.Ex1)
 	// fmt.Printf("\n--------------------------\n")
-	measure(day20.Ex2)
+	// measure(day20.Ex2)
+
+	measure(day21.Ex1)
+	// fmt.Printf("\n--------------------------\n")
+	// measure(day21.Ex2)
 }
 
 func measure(fn func()) {

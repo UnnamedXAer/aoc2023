@@ -89,10 +89,6 @@ func Lcm[T constraints.Integer](a, b T, integers ...T) T {
 	return result
 }
 
-type Point struct {
-	X, Y int
-}
-
 // queue
 // type QElementAny = any
 type QueueAny[T any] []T
