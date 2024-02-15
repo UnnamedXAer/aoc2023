@@ -55,10 +55,6 @@ func extractData() ([][]puzzleElement, point) {
 	return garden, startPos
 }
 
-const STEPS_TO_MAKE = 64
-
-// const STEPS_TO_MAKE = 6
-
 func Ex1() {
 	garden, startPos := extractData()
 
@@ -80,13 +76,13 @@ var offsets = [offsetsSize]point{
 	{0, 1},
 }
 
-var skipped = 0
-var t = time.Now().UnixMilli()
-
 func processPart1(garden [][]puzzleElement, nextPos point, step int) int {
+	const STEPS_TO_MAKE = 65
+	// const STEPS_TO_MAKE = 6
 
-	visits := make(map[point]int, STEPS_TO_MAKE*STEPS_TO_MAKE*1.5)
-	t = time.Now().UnixMilli()
+	visits := make(map[point]int, STEPS_TO_MAKE)
+	var t = time.Now().UnixMilli()
+	var skipped = 0
 	var move func(nextPos point, step int)
 
 	var p point
