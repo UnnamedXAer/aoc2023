@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/unnamedxaer/aoc2023/help"
 )
 
-// const inputNameSuffix= ""
-const inputNameSuffix = "_t"
+const inputNameSuffix = ""
+
+// const inputNameSuffix = "_t"
 const inputName = "./day21/data" + inputNameSuffix + ".txt"
 
 type puzzleElement = byte
@@ -53,128 +55,84 @@ func extractData() ([][]puzzleElement, point) {
 	return garden, startPos
 }
 
-// const STEPS_TO_MAKE = 64
-const STEPS_TO_MAKE = 6
+const STEPS_TO_MAKE = 64
+
+// const STEPS_TO_MAKE = 6
 
 func Ex1() {
 	garden, startPos := extractData()
 
-	total := 0
-	// y := startPos.y + STEPS_TO_MAKE
-	// xsize := -1
-	// for ; y >= 0; y-- {
-	// 	if y < startPos.y {
-	// 		xsize -= 1
-	// 	} else {
-	// 		xsize += 1
-	// 	}
+	// fmt.Printf("\n%v", string(bytes.Join([][]byte(garden), []byte{'\n'})))
 
-	// 	if y < 0 {
-	// 		break
-	// 	}
+	total := processPart1(garden, startPos, 1)
 
-	// 	if y >= len(garden) {
-	// 		continue
-	// 	}
-
-	// 	x := max(0, startPos.x-xsize)
-	// 	xend := min(len(garden[y])-1, startPos.x+xsize) + 1
-
-	// 	for ; x < xend; x++ {
-	// 		if isAllowed(garden, y, x) {
-	// 			total++
-	// 		} else {
-	// 			// fmt.Printf("\n y %d, x %d, xend %d, startpos: %+v", y, x, xend, startPos)
-	// 		}
-	// 	}
-
-	// }
-
-	fmt.Printf("\n%v", string(bytes.Join([][]byte(garden), []byte{'\n'})))
-
-	visits := make(map[point]int, STEPS_TO_MAKE*STEPS_TO_MAKE*1.5)
-	endPositions := move(garden, startPos, 1, &visits)
-	total = len(endPositions)
-
-	// total = 0
-	for p, _ := range checked {
-		// if v%2 == 0 {
-		garden[p.y][p.x] = 'O'
-		// total++
-		// }
-	}
 	fmt.Printf("\n%v", string(bytes.Join([][]byte(garden), []byte{'\n'})))
 
 	fmt.Printf("\n\n  Total: %d", total)
 }
 
-var offsets = [4]point{
+const offsetsSize = 4
+
+var offsets = [offsetsSize]point{
 	{-1, 0},
 	{1, 0},
 	{0, -1},
 	{0, 1},
 }
 
-// type direction int
+var skipped = 0
+var t = time.Now().UnixMilli()
 
-// const (
-// 	north direction = iota
-// 	south
-// 	west
-// 	east
-// )
+func processPart1(garden [][]puzzleElement, nextPos point, step int) int {
 
-func (p point) move(offset point) point {
-	p.y += offset.y
-	p.x += offset.x
-	return p
-}
+	visits := make(map[point]int, STEPS_TO_MAKE*STEPS_TO_MAKE*1.5)
+	t = time.Now().UnixMilli()
+	var move func(nextPos point, step int)
 
-var checked = make(map[point]int)
+	var p point
+	move = func(nextPos point, step int) {
 
-func move(garden [][]puzzleElement, nextPos point, step int, visits *map[point]int) []point {
-	out := make([]point, 0, 4)
+		for _, o := range offsets {
+			p.y = nextPos.y + o.y
+			p.x = nextPos.x + o.x
 
-	for _, o := range offsets {
-		p := nextPos.move(o)
-		v := (*visits)[p]
-		if v > 0 {
-			continue
-		}
-
-		if !isAllowedPoint(garden, p) {
-			continue
-		}
-
-		checked[p] = step
-		// fmt.Printf("checking: %v", p)
-		if step%2 == 0 {
-			(*visits)[p] = step
-		}
-
-		if step == STEPS_TO_MAKE {
-			out = appendPoint(out, p)
-			continue
-		}
-
-		for _, p := range move(garden, p, step+1, visits) {
-			out = appendPoint(out, p)
-		}
-	}
-
-	return out
-}
-
-func appendPoint(points []point, p point) []point {
-	if len(points) > 0 {
-		for _, p2 := range points {
-			if p2.y == p.y && p2.x == p.x {
-				return points
+			v := visits[p]
+			if v > 0 && v <= step {
+				skipped++
+				if skipped%250_000_000*4 == 0 {
+					end := time.Now().UnixMilli()
+					fmt.Printf("\nskipped: %d, time: %d, visits size: %d", skipped, end-t, len(visits))
+					t = end
+				}
+				continue
 			}
+
+			if !isAllowedPoint(garden, p) {
+				continue
+			}
+
+			visits[p] = step
+
+			if step == STEPS_TO_MAKE {
+				continue
+			}
+
+			move(p, step+1)
 		}
 	}
 
-	return append(points, p)
+	move(nextPos, step)
+
+	total := 0
+	fmt.Println()
+	for p, v := range visits {
+		if v%2 == 0 {
+			garden[p.y][p.x] = 'O'
+			total++
+		}
+	}
+
+	return total
 }
 
 func isAllowedPoint(garden [][]puzzleElement, position point) bool {
