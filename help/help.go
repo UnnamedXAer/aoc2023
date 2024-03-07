@@ -121,7 +121,7 @@ func (q *QueueAny[T]) Pop() T {
 	}
 
 	first := (*q)[0]
-	// q[0] = nil
+	// (*q)[0] = *new(T) // delete does it for us
 	*q = slices.Delete(*q, 0, 0+1)
 
 	return first

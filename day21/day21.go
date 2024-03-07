@@ -135,14 +135,14 @@ func isAllowedPoint(garden [][]puzzleElement, position point) bool {
 	return position.y > -1 && position.x > -1 && position.y < len(garden) && position.x < len(garden[0]) && garden[position.y][position.x] != ROCK
 }
 
-func isAllowed(garden [][]puzzleElement, y, x int) bool {
-	if !(y > -1 && x > -1) {
-		return false
-	}
+// func isAllowed(garden [][]puzzleElement, y, x int) bool {
+// 	if !(y > -1 && x > -1) {
+// 		return false
+// 	}
 
-	if !(y < len(garden) && x < len(garden[y])) {
-		return false
-	}
+// 	if !(y < len(garden) && x < len(garden[y])) {
+// 		return false
+// 	}
 
-	return garden[y][x] != ROCK
-}
+// 	return garden[y][x] != ROCK
+// }
