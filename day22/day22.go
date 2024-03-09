@@ -4,13 +4,15 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"math"
 	"os"
 
 	"github.com/unnamedxaer/aoc2023/help"
 )
 
-// const inputNameSuffix= ""
-const inputNameSuffix = "_t"
+const inputNameSuffix = ""
+
+// const inputNameSuffix = "_t"
 const inputName = "./day22/data" + inputNameSuffix + ".txt"
 
 type vector struct {
@@ -47,28 +49,12 @@ func (b brick) val(p perspective, pn int) (v int) {
 	return v
 }
 
-func (b brick) getPosStartAndDelta(p perspective) (s int, d int) {
-	// x := b.p1.x
-	// if b.p2.x < x {
-	// 	x = b.p2.x
-	// }
-	// dx := abs(b.p1.x-b.p2.x) + 1
+func (b brick) smallerValue(p perspective) int {
+	return min(b.val(p, 1), b.val(p, 2))
+}
 
-	v1 := b.val(p, 1)
-	v2 := b.val(p, 2)
-
-	if v1 < v2 {
-		s = v1
-		d = v2 - v1
-	} else {
-		s = v2
-		d = v1 - v2
-	}
-
-	d += 1
-	// d = abs(v1-v2) + 1
-
-	return s, d
+func (b brick) greaterValue(p perspective) int {
+	return max(b.val(p, 1), b.val(p, 2))
 }
 
 func extractData() []*brick {
@@ -149,27 +135,168 @@ func Ex1() {
 	}
 
 	fmt.Println()
-	printBricksFromPerspective(bricks, pX)
+	printBricksFromPerspective(bricks, pX, pZ)
+	printBricksFromPerspective(bricks, pY, pZ)
+	printBricksFromPerspective(bricks, pZ, pX)
+	printBricksFromPerspective(bricks, pZ, pY)
+	printBricksFromPerspective(bricks, pX, pY)
 }
 
 type perspective byte
 
 const (
-	pX perspective = 'x'
-	pY perspective = 'y'
-	pZ perspective = 'z'
+	pX perspective = 'X'
+	pY perspective = 'Y'
+	pZ perspective = 'Z'
 )
 
-func printBricksFromPerspective(b []*brick, p perspective) {
+func printBricksFromPerspective(bricks []*brick, ph perspective, pv perspective) {
+	if ph == pv {
+		panic("\nperspectives cannot be the same")
+	}
 
+	maxPh, maxPv := getMaxForPerspectives(bricks, ph, pv)
+
+	var currentClosestBrick *brick
+	picture := make([][]byte, 0, maxPv)
+
+	// fill 2D grid with blocks
+	endIdx := 0
+	if pv == pZ {
+		endIdx = 1
+	}
+	for v := maxPv - 1; v >= endIdx; v-- {
+		line := make([]byte, maxPh)
+
+		for h := 0; h < maxPh; h++ {
+			// most likely it would be more efficient the other way around to loop through
+			// bricks and put them on the grid, and skip where the block is behind already
+			// placed block in a given point
+			currentClosestBrick, _ = findClosestBrick(bricks, ph, pv, h, v)
+			if currentClosestBrick == nil {
+				line[h] = '.'
+			} else {
+				// display letters A-Za-z - and yes, there will be duplicates if we have more bricks
+				// then available letters
+				base := currentClosestBrick.id % (58 - 6)
+				if base > 25 {
+					base += 6
+				}
+				line[h] = byte(base) + 'A'
+			}
+		}
+
+		picture = append(picture, line)
+	}
+
+	printBricksPicture(picture, ph, pv, maxPh, maxPv)
+}
+
+func printBricksPicture(picture [][]byte, ph, pv perspective, maxPh, maxPv int) {
+	fmt.Println()
+
+	for i := 0; i < (maxPh/2)+1; i++ {
+		fmt.Print(" ")
+	}
+	fmt.Print(string(ph))
+	fmt.Print("\n ")
+	for i := 0; i < maxPh; i++ {
+		fmt.Print(i % 10)
+	}
+
+	for i, v := range picture {
+		fmt.Printf("\n %s %d", string(v), (maxPv - (i + 1)))
+		if i == maxPv/2 {
+			fmt.Printf(" %s", string(pv))
+		}
+	}
+	fmt.Print("\n ")
+	for i := 0; i < maxPh; i++ {
+		fmt.Print("-")
+	}
+	if pv == pZ {
+		fmt.Println(" 0")
+	} else {
+		fmt.Println(" -")
+
+	}
+}
+
+func findClosestBrick(bricks []*brick, pH, pV perspective, idxH, idxV int) (*brick, int) {
+	bricksCnt := len(bricks)
+	if bricksCnt == 0 {
+		return nil, math.MaxInt
+	}
+
+	var p perspective
+
+	switch pH {
+	case pX:
+		if pV == pZ {
+			p = pY
+		} else if pV == pY {
+			p = pZ
+		}
+	case pY:
+		if pV == pZ {
+			p = pX
+		} else if pV == pX {
+			p = pZ
+		}
+	case pZ:
+		if pV == pY {
+			p = pX
+		} else if pV == pX {
+			p = pY
+		}
+	}
+
+	var closestBrick *brick
+	closest := math.MaxInt
+	for _, b := range bricks {
+		value := b.smallerValue(p)
+		if value >= closest {
+			continue
+		}
+
+		// check if projection of current brick includes point (x,z)
+		value1 := b.smallerValue(pH)
+		value2 := b.greaterValue(pH)
+		if !(idxH >= value1 && idxH <= value2) {
+			continue
+		}
+		value1 = b.smallerValue(pV)
+		value2 = b.greaterValue(pV)
+		if !(idxV >= value1 && idxV <= value2) {
+			continue
+		}
+
+		closest = value
+		closestBrick = b
+	}
+
+	return closestBrick, closest
+}
+
+func getMaxForPerspectives(bricks []*brick, ph, pv perspective) (int, int) {
 	maxX := 0
+	maxY := 0
 	maxZ := 0
-	for _, b := range b {
+	maxPh := 0
+	maxPv := 0
+	for _, b := range bricks {
 		if b.p1.x > maxX {
 			maxX = b.p1.x
 		}
 		if b.p2.x > maxX {
 			maxX = b.p2.x
+		}
+
+		if b.p1.y > maxY {
+			maxY = b.p1.y
+		}
+		if b.p2.y > maxY {
+			maxY = b.p2.y
 		}
 
 		if b.p1.z > maxZ {
@@ -181,42 +308,30 @@ func printBricksFromPerspective(b []*brick, p perspective) {
 	}
 
 	maxX += 1
+	maxZ += 1
+	maxY += 1
 
-	fmt.Println()
-
-	for i := 0; i < maxX; i++ {
-		fmt.Print(i % 10)
-	}
-
-	switch p {
+	switch pv {
 	case pX:
-		for k := len(b) - 1; k >= 0; k-- {
-			b := b[k]
-			// x := b.p1.x
-			// if b.p2.x < x {
-			// 	x = b.p2.x
-			// }
-			// dx := abs(b.p1.x-b.p2.x) + 1
-			x, dx := b.getPosStartAndDelta(p)
-
-			line := make([]byte, maxX)
-
-			for i := 0; i < maxX; i++ {
-				if i >= x && i < x+dx {
-					line[i] = byte(b.id) + 'A'
-				} else {
-					line[i] = '.'
-				}
-			}
-
-			fmt.Printf("\n%2d %s", k, line)
-		}
-
-		fmt.Println()
-
+		maxPv = maxX
+	case pY:
+		maxPv = maxY
+	case pZ:
+		maxPv = maxZ
 	default:
-		panic("not implemented perspective: " + string(p))
+		panic("unknown perspective: " + string(pv))
 	}
+
+	switch ph {
+	case pX:
+		maxPh = maxX
+	case pY:
+		maxPh = maxY
+	case pZ:
+		maxPh = maxZ
+	}
+
+	return maxPh, maxPv
 }
 
 func calcVolume(b *brick) {
