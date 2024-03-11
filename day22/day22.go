@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"slices"
 
 	"github.com/unnamedxaer/aoc2023/help"
 )
@@ -24,7 +25,17 @@ type brick struct {
 }
 
 func (b brick) String() string {
-	return fmt.Sprintf("{%+v, %+v | %3d}", b.p1, b.p2, b.id)
+	idLetter := b.idToLetter()
+	return fmt.Sprintf("{%+v, %+v | %4d | %s}", b.p1, b.p2, b.id, string(idLetter))
+}
+
+func (b brick) idToLetter() byte {
+	base := b.id % (58 - 6)
+	if base > 25 {
+		base += 6
+	}
+	idLetter := byte(base) + 'A'
+	return idLetter
 }
 
 func (b brick) val(p perspective, pn int) (v int) {
@@ -55,6 +66,10 @@ func (b brick) smallerValue(p perspective) int {
 
 func (b brick) greaterValue(p perspective) int {
 	return max(b.val(p, 1), b.val(p, 2))
+}
+
+func (b brick) clone() *brick {
+	return &b
 }
 
 func extractData() []*brick {
@@ -119,14 +134,19 @@ func extractBrick(line []byte, id int) *brick {
 		}
 	}
 
+	if b.p1.x > b.p2.x ||
+		b.p1.y > b.p2.y ||
+		b.p1.z > b.p2.z {
+		fmt.Printf("\n p1 is greater then p2: %s", b)
+	}
 	return &b
 }
 
 func Ex1() {
 	bricks := extractData()
-	for _, b := range bricks {
-		fmt.Printf("\n%v", b)
-	}
+	// for _, b := range bricks {
+	// 	fmt.Printf("\n%v", b)
+	// }
 
 	fmt.Println()
 
@@ -134,12 +154,199 @@ func Ex1() {
 		calcVolume(b)
 	}
 
+	// fmt.Println()
+	// printBricksFromPerspective(bricks, pX, pZ)
+	// printBricksFromPerspective(bricks, pY, pZ)
+	// printBricksFromPerspective(bricks, pZ, pX)
+	// printBricksFromPerspective(bricks, pZ, pY)
+	// printBricksFromPerspective(bricks, pX, pY)
+
+	bricks = fallBricks(bricks)
+
+	supports, supportedby := determineWhatSupportWhat(bricks)
+	total := calcDisintegrable(bricks, supports, supportedby)
+
+	fmt.Printf("\n\n Total: %d", total)
+	// 1330 - too high
+}
+
+func determineWhatSupportWhat(bricks []*brick) (map[*brick][]*brick, map[*brick][]*brick) {
+	supports := make(map[*brick][]*brick, len(bricks))
+	supportedBy := make(map[*brick][]*brick, len(bricks))
+
+	for _, b1 := range bricks {
+		for _, b2 := range bricks {
+			if isSupporting(b1, b2) {
+				supports[b1] = append(supports[b1], b2)
+				supportedBy[b2] = append(supportedBy[b2], b1)
+			}
+		}
+	}
+
+	// fmt.Println("is supporting: ")
+	// for _, b1 := range bricks {
+	// 	list := supports[b1]
+	// 	fmt.Printf("\n%s: ", string(b1.idToLetter()))
+	// 	for _, b2 := range list {
+	// 		fmt.Printf(", %s", string(b2.idToLetter()))
+	// 	}
+	// }
+
+	// fmt.Println()
+	// fmt.Println("is supported by: ")
+
+	// for _, b1 := range bricks {
+	// 	list := supportedBy[b1]
+	// 	fmt.Printf("\n%s: ", string(b1.idToLetter()))
+	// 	for _, b2 := range list {
+	// 		fmt.Printf(", %s", string(b2.idToLetter()))
+	// 	}
+	// }
+
+	return supports, supportedBy
+}
+
+func calcDisintegrable(bricks []*brick, supports map[*brick][]*brick, supportedBy map[*brick][]*brick) int {
+	disintegrable := map[*brick]bool{}
 	fmt.Println()
-	printBricksFromPerspective(bricks, pX, pZ)
-	printBricksFromPerspective(bricks, pY, pZ)
-	printBricksFromPerspective(bricks, pZ, pX)
-	printBricksFromPerspective(bricks, pZ, pY)
-	printBricksFromPerspective(bricks, pX, pY)
+	for _, b1 := range bricks {
+		disintegrable[b1] = false
+		list := supports[b1]
+
+		if len(list) == 0 {
+			disintegrable[b1] = true
+			continue
+		}
+
+		for _, b2 := range list {
+			if len(supportedBy[b2]) > 1 {
+				disintegrable[b1] = true
+			}
+		}
+	}
+
+	cnt := 0
+	for _, v := range disintegrable {
+		if v {
+			cnt++
+		}
+	}
+	return cnt
+}
+
+func fallBricks(bricks []*brick) []*brick {
+
+	sortedBricks := make([]*brick, len(bricks))
+	for i, b := range bricks {
+		sortedBricks[i] = b.clone()
+	}
+
+	slices.SortFunc(sortedBricks, func(a, b *brick) int {
+		return a.smallerValue(pZ) - b.smallerValue(pZ)
+	})
+
+	fmt.Printf("\n")
+
+	for {
+		cnt := 0
+		for _, b := range sortedBricks {
+
+			for canFall(sortedBricks, b) {
+				cnt++
+				b.p1.z -= 1
+				b.p2.z -= 1
+			}
+		}
+		fmt.Printf("\n falls: %d", cnt)
+		if cnt == 0 {
+			break
+		}
+	}
+
+	return sortedBricks
+}
+
+func isSupporting(b1, b2 *brick) bool {
+	if b1.greaterValue(pZ) != b2.smallerValue(pZ)-1 {
+		return false
+	}
+
+	b1px1 := b1.smallerValue(pX)
+	b1px2 := b1.greaterValue(pX)
+
+	b1py1 := b1.smallerValue(pY)
+	b1py2 := b1.greaterValue(pY)
+
+	b2x1 := b2.smallerValue(pX)
+	b2x2 := b2.greaterValue(pX)
+
+	b2y1 := b2.smallerValue(pY)
+	b2y2 := b2.greaterValue(pY)
+
+	noOverlap := false
+	tmp := false
+
+	tmp = b1px1 > b2x2
+	noOverlap = noOverlap || tmp
+	tmp = b1px2 < b2x1
+	noOverlap = noOverlap || tmp
+	tmp = b1py2 < b2y1
+	noOverlap = noOverlap || tmp
+	tmp = b1py1 > b2y2
+	noOverlap = noOverlap || tmp
+
+	return !noOverlap
+}
+
+func canFall(bricks []*brick, b *brick) bool {
+	z := b.smallerValue(pZ)
+	if z <= 1 {
+		return false
+	}
+
+	bpx1 := b.smallerValue(pX)
+	bpx2 := b.greaterValue(pX)
+
+	bpy1 := b.smallerValue(pY)
+	bpy2 := b.greaterValue(pY)
+
+	bId := b.id
+
+	for _, currBrick := range bricks {
+		if currBrick.id == bId {
+			continue
+		}
+
+		currBrickZ := currBrick.greaterValue(pZ)
+		if !(currBrickZ+1 == z) {
+			continue
+		}
+
+		// does bricks overlap on plane x/y
+		cbpx1 := currBrick.smallerValue(pX)
+		cbpx2 := currBrick.greaterValue(pX)
+
+		cbpy1 := currBrick.smallerValue(pY)
+		cbpy2 := currBrick.greaterValue(pY)
+
+		noOverlap := false
+		tmp := false
+
+		tmp = bpx1 > cbpx2
+		noOverlap = noOverlap || tmp
+		tmp = bpx2 < cbpx1
+		noOverlap = noOverlap || tmp
+		tmp = bpy2 < cbpy1
+		noOverlap = noOverlap || tmp
+		tmp = bpy1 > cbpy2
+		noOverlap = noOverlap || tmp
+
+		if !noOverlap {
+			return false
+		}
+	}
+
+	return true
 }
 
 type perspective byte
