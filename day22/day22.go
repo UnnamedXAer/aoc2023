@@ -19,6 +19,11 @@ const inputName = "./day22/data" + inputNameSuffix + ".txt"
 type vector struct {
 	x, y, z int
 }
+
+func (v vector) String() string {
+	return fmt.Sprintf("{x: %3d, y: %3d, z: %3d}", v.x, v.y, v.z)
+}
+
 type brick struct {
 	id     int
 	p1, p2 vector
@@ -109,7 +114,7 @@ func extractBrick(line []byte, id int) *brick {
 			for i := len(coord) - 1; i >= 0; i-- {
 
 				value += int(coord[i]-'0') * multiplier
-				multiplier++
+				multiplier *= 10
 			}
 
 			if vIdx == 0 {
@@ -134,11 +139,6 @@ func extractBrick(line []byte, id int) *brick {
 		}
 	}
 
-	if b.p1.x > b.p2.x ||
-		b.p1.y > b.p2.y ||
-		b.p1.z > b.p2.z {
-		fmt.Printf("\n p1 is greater then p2: %s", b)
-	}
 	return &b
 }
 
@@ -148,11 +148,11 @@ func Ex1() {
 	// 	fmt.Printf("\n%v", b)
 	// }
 
-	fmt.Println()
+	// fmt.Println()
 
-	for _, b := range bricks {
-		calcVolume(b)
-	}
+	// for _, b := range bricks {
+	// 	calcVolume(b)
+	// }
 
 	// fmt.Println()
 	// printBricksFromPerspective(bricks, pX, pZ)
@@ -163,11 +163,16 @@ func Ex1() {
 
 	bricks = fallBricks(bricks)
 
-	supports, supportedby := determineWhatSupportWhat(bricks)
-	total := calcDisintegrable(bricks, supports, supportedby)
+	// printBricksFromPerspective(bricks, pX, pZ)
+	// printBricksFromPerspective(bricks, pY, pZ)
+	// printBricksFromPerspective(bricks, pX, pY)
+
+	supports, supportedBy := determineWhatSupportWhat(bricks)
+	total := calcDisintegrable(bricks, supports, supportedBy)
 
 	fmt.Printf("\n\n Total: %d", total)
 	// 1330 - too high
+	// 526 - too high
 }
 
 func determineWhatSupportWhat(bricks []*brick) (map[*brick][]*brick, map[*brick][]*brick) {
@@ -221,6 +226,11 @@ func calcDisintegrable(bricks []*brick, supports map[*brick][]*brick, supportedB
 		for _, b2 := range list {
 			if len(supportedBy[b2]) > 1 {
 				disintegrable[b1] = true
+			} else {
+				// if at least one block supported by b1 has no other blocks that supports it
+				// then we cannot disintegrate b1
+				disintegrable[b1] = false
+				break
 			}
 		}
 	}
@@ -245,7 +255,7 @@ func fallBricks(bricks []*brick) []*brick {
 		return a.smallerValue(pZ) - b.smallerValue(pZ)
 	})
 
-	fmt.Printf("\n")
+	// fmt.Printf("\n")
 
 	for {
 		cnt := 0
@@ -257,7 +267,7 @@ func fallBricks(bricks []*brick) []*brick {
 				b.p2.z -= 1
 			}
 		}
-		fmt.Printf("\n falls: %d", cnt)
+		// fmt.Printf("\n falls: %d", cnt)
 		if cnt == 0 {
 			break
 		}
@@ -267,7 +277,9 @@ func fallBricks(bricks []*brick) []*brick {
 }
 
 func isSupporting(b1, b2 *brick) bool {
-	if b1.greaterValue(pZ) != b2.smallerValue(pZ)-1 {
+	b1ZTop := b1.greaterValue(pZ)
+	b2ZBottom := b2.smallerValue(pZ)
+	if b1ZTop != b2ZBottom-1 {
 		return false
 	}
 
@@ -460,10 +472,35 @@ func findClosestBrick(bricks []*brick, pH, pV perspective, idxH, idxV int) (*bri
 
 	var closestBrick *brick
 	closest := math.MaxInt
+	if p == pZ {
+		closest = math.MinInt
+	}
+	var value int
 	for _, b := range bricks {
-		value := b.smallerValue(p)
-		if value >= closest {
-			continue
+		if p == pZ {
+			// we are watching from above so we want greatest values
+			//       |
+			//      \/
+			//
+			//     AAB
+			//     AAC
+			//     DDD
+			//
+			//     ===
+			//     AAB
+			value = b.greaterValue(p)
+			if value <= closest {
+				continue
+			}
+		} else {
+			// we are watching from the side, so we want bricks that are closest to us
+			//     AAB = A
+			//  -> AAC = A
+			//     DDD = D
+			value = b.smallerValue(p)
+			if value >= closest {
+				continue
+			}
 		}
 
 		// check if projection of current brick includes point (x,z)
