@@ -1,6 +1,10 @@
 package day22
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/unnamedxaer/aoc2023/help"
+)
 
 func Ex2() {
 	bricks := extractData()
@@ -33,39 +37,55 @@ func calcChainReactions(bricks []*brick, supports map[*brick][]*brick, supported
 
 	total := 0
 	for _, b1 := range bricks {
-		total = calcChainReactionForBrick(bricks, b1, supports, supportedBy)
+		// fmt.Println(b1)
+		total += calcChainReactionForBrick(b1, supports, supportedBy)
 	}
+	// total = calcChainReactionForBrick(bricks, bricks[0], supports, supportedBy)
 
 	return total
 }
 
-func calcChainReactionForBrick(bricks []*brick, b1 *brick, supports map[*brick][]*brick, supportedBy map[*brick][]*brick) int {
+func calcChainReactionForBrick(b *brick, supports map[*brick][]*brick, supportedBy map[*brick][]*brick) int {
 
-	list := supports[b1]
+	q := help.NewQAny[*brick]()
+	q.Push(b)
 
-	total := 0
+	depends := map[*brick]bool{
+		b: true,
+	}
 
-	// bricksOnlySupportedByB1 := []*brick{}
+	for !q.IsEmpty() {
+		b1 := q.Pop()
 
-	for _, b2 := range list {
-		// len == 0 cannot happen
+		list := supports[b1]
+		for _, b2 := range list {
 
-		// if b2 is only supported by 1 brick, that means that only b1 is supporting it,
-		// so disintegrating b1 disintegrate b2, therefore we add 1 plus result of
-		// disintegrating b2.
-		if len(supportedBy[b2]) == 1 {
-			total++
-			total += calcChainReactionForBrick(bricks, b2, supports, supportedBy)
-			// bricksOnlySupportedByB1 = append(bricksOnlySupportedByB1, b2)
-		} else {
-			// b2 is supported by some other(s) brick(s) than b1, but those bricks
-			// potentially could be disintegrated as they may have a common parent with b2
+			if !isDepending(b, b2, supportedBy, depends) {
+				continue
+			}
 
-			// in that case, do we have to keep list off all fallen bricks that have common parent
-			// with b2 (which means that we need a list off all fallen bricks from starting from
-			// the brick passed to the calcChainReaction function).
+			depends[b2] = true
+
+			q.Push(b2)
 		}
 	}
 
-	return total
+	return len(depends) - 1
+}
+
+func isDepending(base *brick, b *brick, supportedBy map[*brick][]*brick, depends map[*brick]bool) bool {
+
+	for _, supporter := range supportedBy[b] {
+		// if supporter.id == base.id {
+		// 	continue
+		// }
+
+		if depends[supporter] {
+			continue
+		}
+
+		return false
+	}
+
+	return true
 }

@@ -11,9 +11,10 @@ import (
 	"github.com/unnamedxaer/aoc2023/help"
 )
 
-// const inputNameSuffix = ""
+const inputNameSuffix = ""
 
-const inputNameSuffix = "_t"
+// const inputNameSuffix = "_t"
+// const inputNameSuffix = "_t2"
 const inputName = "./day22/data" + inputNameSuffix + ".txt"
 
 type vector struct {
@@ -188,7 +189,7 @@ func determineWhatSupportWhat(bricks []*brick) (map[*brick][]*brick, map[*brick]
 		}
 	}
 
-	// fmt.Println("is supporting: ")
+	// fmt.Print("\nis supporting (supports): ")
 	// for _, b1 := range bricks {
 	// 	list := supports[b1]
 	// 	fmt.Printf("\n%s: ", string(b1.idToLetter()))
@@ -198,7 +199,7 @@ func determineWhatSupportWhat(bricks []*brick) (map[*brick][]*brick, map[*brick]
 	// }
 
 	// fmt.Println()
-	// fmt.Println("is supported by: ")
+	// fmt.Print("\nis supported by (supportedBy): ")
 
 	// for _, b1 := range bricks {
 	// 	list := supportedBy[b1]
@@ -207,6 +208,8 @@ func determineWhatSupportWhat(bricks []*brick) (map[*brick][]*brick, map[*brick]
 	// 		fmt.Printf(", %s", string(b2.idToLetter()))
 	// 	}
 	// }
+
+	// fmt.Println()
 
 	return supports, supportedBy
 }
