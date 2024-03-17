@@ -9,9 +9,9 @@ import (
 	"github.com/unnamedxaer/aoc2023/help"
 )
 
-const inputNameSuffix = ""
+// const inputNameSuffix = ""
 
-// const inputNameSuffix = "_t"
+const inputNameSuffix = "_t"
 const inputName = "./day23/data" + inputNameSuffix + ".txt"
 
 type point struct {
@@ -90,8 +90,13 @@ func extractData() World {
 	return world
 }
 
-func Ex1() {
-	world := extractData()
+func ExtractData() World {
+	w := extractData()
+	fillAdjacencyMap(&w, false)
+	return w
+}
+
+func Ex1(world World) {
 	// fmt.Print(world)
 
 	// we make "one step" from the entrance Pos to skip checking bounds for the world
@@ -99,14 +104,233 @@ func Ex1() {
 	entrance := point{y: world.entrancePos.y + 1, x: world.entrancePos.x}
 	hike := make([]point, 1, world.size*5)
 	hike[0] = world.entrancePos
-	total, ok := calcLongestHike(false, world, entrance, 1, hike)
+	fmt.Print("\ncalcLongestHikeEx1")
+	total, ok := calcLongestHikeEx1(false, world, entrance, 1, hike)
 	if !ok {
 		fmt.Printf("not ok")
 	}
 	fmt.Printf("\n\n total: %d", total)
+
+}
+func Ex1_1(world World) {
+
+	entrance := point{y: world.entrancePos.y + 1, x: world.entrancePos.x}
+	hikeMap := make(map[point]bool, world.size*world.size)
+	hikeMap[world.entrancePos] = true
+	fmt.Print("\ncalcLongestHikeEx1HikeMap")
+	total, ok := calcLongestHikeEx1HikeMap(false, world, entrance, 1, hikeMap)
+	if !ok {
+		fmt.Printf("not ok")
+	}
+	fmt.Printf("\n\n total hike map: %d", total)
 }
 
-func calcLongestHike(canClimb bool, world World, pos point, step int, hike []point) (int, bool) {
+func Ex1_2(world World) {
+
+	entrance := point{y: world.entrancePos.y + 1, x: world.entrancePos.x}
+	hikeMap := make(map[point]bool, world.size*world.size)
+	hikeMap[world.entrancePos] = true
+	fmt.Print("\ncalcLongestHikeEx1HikeMapCameFrom")
+	total, ok := calcLongestHikeEx1HikeMapCameFrom(false, world, entrance, world.entrancePos, 1, hikeMap)
+	if !ok {
+		fmt.Printf("not ok")
+	}
+	fmt.Printf("\n\n total hike map: %d", total)
+}
+
+func Ex1_3(world World) {
+
+	entrance := point{y: world.entrancePos.y + 1, x: world.entrancePos.x}
+	hikeMap := make(map[point]bool, world.size*world.size)
+	hikeMap[world.entrancePos] = true
+	fmt.Print("\ncalcLongestHikeMapWithAdjacencyMap")
+	total, ok := calcLongestHikeMapWithAdjacencyMap(world, entrance, world.entrancePos, 1, hikeMap)
+	if !ok {
+		fmt.Printf("not ok")
+	}
+
+	fmt.Printf("\n\n total hike map: %d", total)
+}
+
+func calcLongestHikeMapWithAdjacencyMap(world World, pos point, cameFrom point, step int, hike map[point]bool) (int, bool) {
+
+	if pos == world.exitPos {
+		return step, true
+	}
+
+	// if contains(hike, pos) {
+	if hike[pos] {
+		return 0, false
+	}
+
+	step++
+	// hike = append(hike, pos)
+	hike[pos] = true
+
+	max := 0
+
+	for _, p := range world.adjacency[pos] {
+		if p == cameFrom {
+			continue
+		}
+
+		tmpStep, ok := calcLongestHikeMapWithAdjacencyMap(world, p, pos, step, hike)
+		// hike[p] = false
+		delete(hike, p)
+		if ok && tmpStep > max {
+			max = tmpStep
+		}
+	}
+
+	if max > 0 {
+		return max, true
+	}
+
+	return 0, false
+}
+
+func calcLongestHikeEx1HikeMapCameFrom(canClimb bool, world World, pos, cameFrom point, step int, hike map[point]bool) (int, bool) {
+	// no need for copy because caller won't see changes that are made outside "its length"
+	// hike := _hike
+
+	var tp terrainType = world.w[pos.y][pos.x]
+
+	if tp == forrest {
+		return 0, false
+	}
+
+	if pos == world.exitPos {
+		return step, true
+	}
+
+	// if contains(hike, pos) {
+	if hike[pos] {
+		return 0, false
+	}
+
+	step++
+	// hike = append(hike, pos)
+	hike[pos] = true
+
+	max := 0
+
+	if canClimb || tp == path {
+
+		for _, p := range directionsOffsets {
+			p.y += pos.y
+			p.x += pos.x
+
+			if cameFrom == p {
+				continue
+			}
+			if p.y == pos.y-1 && p.x == world.size-2 {
+				continue
+			}
+
+			tmpStep, ok := calcLongestHikeEx1HikeMapCameFrom(canClimb, world, p, pos, step, hike)
+			if ok && tmpStep > max {
+				max = tmpStep
+			}
+			// hike[p] = false
+			delete(hike, p)
+		}
+	} else {
+		p := pos
+		switch tp {
+		case slopUp:
+			p.y += -1
+		case slopLeft:
+			p.x += -1
+		case slopDown:
+			p.y += 1
+		case slopRight:
+			p.x += 1
+		default:
+			panic("unknown terrain: " + string(tp))
+		}
+
+		tmpStep, ok := calcLongestHikeEx1HikeMapCameFrom(canClimb, world, p, pos, step, hike)
+		if ok && tmpStep > max {
+			max = tmpStep
+		}
+		// hike[p] = false
+		delete(hike, p)
+	}
+
+	if max > 0 {
+		return max, true
+	}
+
+	return 0, false
+}
+
+func calcLongestHikeEx1HikeMap(canClimb bool, world World, pos point, step int, hike map[point]bool) (int, bool) {
+	// no need for copy because caller won't see changes that are made outside "its length"
+	// hike := _hike
+
+	var tp terrainType = world.w[pos.y][pos.x]
+
+	if tp == forrest {
+		return 0, false
+	}
+
+	if pos == world.exitPos {
+		return step, true
+	}
+
+	// if contains(hike, pos) {
+	if hike[pos] {
+		return 0, false
+	}
+
+	step++
+	// hike = append(hike, pos)
+	hike[pos] = true
+
+	max := 0
+
+	if canClimb || tp == path {
+
+		for _, p := range directionsOffsets {
+			p.y += pos.y
+			p.x += pos.x
+
+			tmpStep, ok := calcLongestHikeEx1HikeMap(canClimb, world, p, step, hike)
+			if ok && tmpStep > max {
+				max = tmpStep
+			}
+			delete(hike, p)
+		}
+	} else {
+		p := pos
+		switch tp {
+		case slopUp:
+			p.y += -1
+		case slopLeft:
+			p.x += -1
+		case slopDown:
+			p.y += 1
+		case slopRight:
+			p.x += 1
+		default:
+			panic("unknown terrain: " + string(tp))
+		}
+
+		tmpStep, ok := calcLongestHikeEx1HikeMap(canClimb, world, p, step, hike)
+		if ok && tmpStep > max {
+			max = tmpStep
+		}
+		delete(hike, p)
+	}
+
+	if max > 0 {
+		return max, true
+	}
+
+	return 0, false
+}
+
+func calcLongestHikeEx1(canClimb bool, world World, pos point, step int, hike []point) (int, bool) {
 	// no need for copy because caller won't see changes that are made outside "its length"
 	// hike := _hike
 
@@ -135,7 +359,7 @@ func calcLongestHike(canClimb bool, world World, pos point, step int, hike []poi
 			p.y += pos.y
 			p.x += pos.x
 
-			tmpStep, ok := calcLongestHike(canClimb, world, p, step, hike)
+			tmpStep, ok := calcLongestHikeEx1(canClimb, world, p, step, hike)
 			if ok && tmpStep > max {
 				max = tmpStep
 			}
@@ -155,7 +379,7 @@ func calcLongestHike(canClimb bool, world World, pos point, step int, hike []poi
 			panic("unknown terrain: " + string(tp))
 		}
 
-		tmpStep, ok := calcLongestHike(canClimb, world, p, step, hike)
+		tmpStep, ok := calcLongestHikeEx1(canClimb, world, p, step, hike)
 		if ok && tmpStep > max {
 			max = tmpStep
 		}

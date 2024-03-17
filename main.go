@@ -82,9 +82,17 @@ func main() {
 	// fmt.Printf("\n--------------------------\n")
 	// measure(day22.Ex2)
 
-	measure(day23.Ex1)
-	// fmt.Printf("\n--------------------------\n")
+	var w day23.World
+	measure(func() {
+		w = day23.ExtractData()
+	})
+	measure(func() { day23.Ex1(w) })
+	measure(func() { day23.Ex1_1(w) })
+	measure(func() { day23.Ex1_2(w) })
+	measure(func() { day23.Ex1_3(w) })
+	fmt.Printf("\n--------------------------\n")
 	measure(day23.Ex2)
+	// measure(day23.Ex2_1)
 }
 
 func measure(fn func()) {
