@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/unnamedxaer/aoc2023/help"
-	"golang.org/x/exp/slices"
 )
 
 const inputNameSuffix = ""
@@ -94,7 +93,12 @@ func Ex1() {
 	world := extractData()
 	// fmt.Print(world)
 
-	total, ok := calcLongestHike(world, world.entrancePos, 0, make([]point, 0, 1))
+	// we make "one step" from the entrance Pos to skip checking bounds for the world
+	// the world is surrounded by forest so that should protect us from "index out of range"
+	entrance := point{y: world.entrancePos.y + 1, x: world.entrancePos.x}
+	hike := make([]point, 1, world.size*5)
+	hike[0] = world.entrancePos
+	total, ok := calcLongestHike(world, entrance, 1, hike)
 	if !ok {
 		fmt.Printf("not ok")
 	}
@@ -110,6 +114,11 @@ func calcLongestHike(world World, pos point, step int, hike []point) (int, bool)
 	// copy(hike, _hike)
 	// like that, or just using parameter:
 	// hike := _hike
+
+	// the world is surrounded by forest so we won't go outside :)
+	// if pos.y < 0 || pos.y == world.size || pos.x < 0 || pos.x == world.size {
+	// 	return 0, false
+	// }
 
 	var tp terrainType = world.w[pos.y][pos.x]
 
@@ -130,38 +139,33 @@ func calcLongestHike(world World, pos point, step int, hike []point) (int, bool)
 
 	max := 0
 
-	switch tp {
-	case path:
-		// push all around
+	if tp == path {
+
 		for _, p := range directionsOffsets {
 			p.y += pos.y
 			p.x += pos.x
-			if p.y < 0 || p.y == world.size || p.x < 0 || p.x == world.size {
-				continue
-			}
+
 			tmpStep, ok := calcLongestHike(world, p, step, hike)
 			if ok && tmpStep > max {
 				max = tmpStep
 			}
 		}
+	} else {
+		p := pos
+		switch tp {
+		case slopUp:
+			p.y += -1
+		case slopLeft:
+			p.x += -1
+		case slopDown:
+			p.y += 1
+		case slopRight:
+			p.x += 1
+		default:
+			panic("unknown terrain: " + string(tp))
+		}
 
-	case slopUp:
-		tmpStep, ok := calcLongestHike(world, point{y: pos.y - 1, x: pos.x}, step, hike)
-		if ok && tmpStep > max {
-			max = tmpStep
-		}
-	case slopLeft:
-		tmpStep, ok := calcLongestHike(world, point{y: pos.y, x: pos.x - 1}, step, hike)
-		if ok && tmpStep > max {
-			max = tmpStep
-		}
-	case slopDown:
-		tmpStep, ok := calcLongestHike(world, point{y: pos.y + 1, x: pos.x}, step, hike)
-		if ok && tmpStep > max {
-			max = tmpStep
-		}
-	case slopRight:
-		tmpStep, ok := calcLongestHike(world, point{y: pos.y, x: pos.x + 1}, step, hike)
+		tmpStep, ok := calcLongestHike(world, p, step, hike)
 		if ok && tmpStep > max {
 			max = tmpStep
 		}
@@ -170,14 +174,22 @@ func calcLongestHike(world World, pos point, step int, hike []point) (int, bool)
 	if max > 0 {
 		return max, true
 	}
+
 	return 0, false
 }
 
 func contains(hike []point, p point) bool {
-	return slices.Contains(hike, p)
+	// return slices.Contains(hike, p)
+
+	for i := len(hike) - 1; i >= 0; i-- {
+		if hike[i] == p {
+			return true
+		}
+	}
+	return false
 }
 
-var directionsOffsets = []point{
+var directionsOffsets = [4]point{
 	{-1, 0},
 	{1, 0},
 	{0, -1},
