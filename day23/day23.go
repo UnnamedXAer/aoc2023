@@ -23,6 +23,7 @@ type World struct {
 	size        int
 	entrancePos point
 	exitPos     point
+	adjacency   map[point][]point
 }
 
 type terrainType = byte
@@ -98,27 +99,16 @@ func Ex1() {
 	entrance := point{y: world.entrancePos.y + 1, x: world.entrancePos.x}
 	hike := make([]point, 1, world.size*5)
 	hike[0] = world.entrancePos
-	total, ok := calcLongestHike(world, entrance, 1, hike)
+	total, ok := calcLongestHike(false, world, entrance, 1, hike)
 	if !ok {
 		fmt.Printf("not ok")
 	}
-
 	fmt.Printf("\n\n total: %d", total)
 }
 
-func calcLongestHike(world World, pos point, step int, hike []point) (int, bool) {
-	// do not modify previous hike,
-	// probably we could do this by making exact size of the array
-	// so any appending in the recursive calls wouldn't be visible for the caller
-	// hike := make([]point, len(_hike), len(_hike)+1)
-	// copy(hike, _hike)
-	// like that, or just using parameter:
+func calcLongestHike(canClimb bool, world World, pos point, step int, hike []point) (int, bool) {
+	// no need for copy because caller won't see changes that are made outside "its length"
 	// hike := _hike
-
-	// the world is surrounded by forest so we won't go outside :)
-	// if pos.y < 0 || pos.y == world.size || pos.x < 0 || pos.x == world.size {
-	// 	return 0, false
-	// }
 
 	var tp terrainType = world.w[pos.y][pos.x]
 
@@ -139,13 +129,13 @@ func calcLongestHike(world World, pos point, step int, hike []point) (int, bool)
 
 	max := 0
 
-	if tp == path {
+	if canClimb || tp == path {
 
 		for _, p := range directionsOffsets {
 			p.y += pos.y
 			p.x += pos.x
 
-			tmpStep, ok := calcLongestHike(world, p, step, hike)
+			tmpStep, ok := calcLongestHike(canClimb, world, p, step, hike)
 			if ok && tmpStep > max {
 				max = tmpStep
 			}
@@ -165,7 +155,7 @@ func calcLongestHike(world World, pos point, step int, hike []point) (int, bool)
 			panic("unknown terrain: " + string(tp))
 		}
 
-		tmpStep, ok := calcLongestHike(world, p, step, hike)
+		tmpStep, ok := calcLongestHike(canClimb, world, p, step, hike)
 		if ok && tmpStep > max {
 			max = tmpStep
 		}
