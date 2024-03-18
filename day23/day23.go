@@ -9,9 +9,9 @@ import (
 	"github.com/unnamedxaer/aoc2023/help"
 )
 
-// const inputNameSuffix = ""
+const inputNameSuffix = ""
 
-const inputNameSuffix = "_t"
+// const inputNameSuffix = "_t"
 const inputName = "./day23/data" + inputNameSuffix + ".txt"
 
 type point struct {
@@ -19,11 +19,12 @@ type point struct {
 }
 
 type World struct {
-	w           [][]terrainType
-	size        int
-	entrancePos point
-	exitPos     point
-	adjacency   map[point][]point
+	w            [][]terrainType
+	size         int
+	entrancePos  point
+	exitPos      point
+	adjacency    map[point][]point
+	steppableCnt int
 }
 
 type terrainType = byte
@@ -112,6 +113,7 @@ func Ex1(world World) {
 	fmt.Printf("\n\n total: %d", total)
 
 }
+
 func Ex1_1(world World) {
 
 	entrance := point{y: world.entrancePos.y + 1, x: world.entrancePos.x}
@@ -344,7 +346,7 @@ func calcLongestHikeEx1(canClimb bool, world World, pos point, step int, hike []
 		return step, true
 	}
 
-	if contains(hike, pos) {
+	if containsPoint(hike, pos) {
 		return 0, false
 	}
 
@@ -392,7 +394,7 @@ func calcLongestHikeEx1(canClimb bool, world World, pos point, step int, hike []
 	return 0, false
 }
 
-func contains(hike []point, p point) bool {
+func containsPoint(hike []point, p point) bool {
 	// return slices.Contains(hike, p)
 
 	for i := len(hike) - 1; i >= 0; i-- {
