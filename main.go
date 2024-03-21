@@ -96,7 +96,8 @@ func main() {
 		w = day23.ExtractData()
 	})
 	// measure(func() { day23.Ex2(w) })
-	measure(func() { day23.Ex2_1(w) })
+	// measure(func() { day23.Ex2_1(w) })
+	measure(func() { day23.Ex2_2(w) })
 }
 
 func measure(fn func()) {

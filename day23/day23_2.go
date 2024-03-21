@@ -2,6 +2,7 @@ package day23
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/unnamedxaer/aoc2023/help"
 	"golang.org/x/exp/constraints"
@@ -68,6 +69,70 @@ func Ex2_1(world World) {
 	fmt.Printf("\n\n total: %d", total2)
 	// 5030 - too low
 	// 5246 - too low
+}
+
+func Ex2_2(world World) {
+	// world := extractData()
+	fillAdjacencyMap(&world, true)
+
+	total2 := calcDijkstra(world)
+
+	fmt.Printf("\n\n total: %d", total2)
+	// 5030 - too low
+	// 5246 - too low
+}
+
+func calcDijkstra(world World) int {
+	// fmt.Println(world.adjacency[world.entrancePos])
+	// fmt.Println(world.adjacency[point{y: world.exitPos.y - 1, x: world.exitPos.x}])
+	// world.adjacency[world.entrancePos] = []point{{y: world.entrancePos.y + 1, x: world.entrancePos.x}}
+	// world.adjacency[point{y: world.exitPos.y - 1, x: world.exitPos.x}] = []point{world.exitPos}
+	// fmt.Println(world.adjacency[world.entrancePos])
+	// fmt.Println(world.adjacency[point{y: world.exitPos.y - 1, x: world.exitPos.x}])
+
+	q := help.NewPQAny[point](100)
+	nodesCnt := len(world.adjacency)
+	distances := make(map[point]int, nodesCnt)
+	visited := make(map[point]bool, nodesCnt)
+	paths := make(map[point]point, nodesCnt)
+	var wIdx, d int
+	var v, w point
+	for v = range world.adjacency {
+		if v == world.exitPos {
+			print(v.y, v.x)
+		}
+		distances[v] = math.MaxInt
+	}
+
+	distances[world.entrancePos] = 0
+	paths[world.entrancePos] = world.entrancePos
+	q.Enqueue(world.entrancePos, 0)
+
+	for !q.IsEmpty() {
+		v = q.Dequeue().Key
+		visited[v] = true
+
+		neighbours := world.adjacency[v]
+		for wIdx = 0; wIdx < len(neighbours); wIdx++ {
+			d = distances[v] + (-1) // we are using negative values to find longest path
+			w = neighbours[wIdx]
+			if distances[w] == math.MaxInt {
+				distances[w] = d
+				q.Enqueue(w, -d)
+				paths[w] = v
+			}
+
+			if distances[w] < d {
+				// if distances[w] > d {
+				distances[w] = d
+				q.UpdatePriority(w, -d)
+				paths[w] = v
+			}
+
+		}
+	}
+
+	return distances[world.exitPos]
 }
 
 func calcLongestHikeWithAdjacencyMapEx2_1(world World, pos point, cameFrom point, step int, hike []uint16) (int, bool) {

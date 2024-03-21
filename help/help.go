@@ -164,3 +164,93 @@ func (s *Stack[T]) Pop() T {
 
 	return top
 }
+
+//////////////////////////
+
+type PQItem[T comparable] struct {
+	Key      T
+	Priority int
+}
+
+type PQAny[T comparable] []PQItem[T]
+
+// Returns not the fastest priority queue
+func NewPQAny[T comparable](n ...int) PQAny[T] {
+	size := 10
+	if len(n) > 0 {
+		size = n[0]
+	}
+
+	return make(PQAny[T], 0, size)
+}
+
+func (q PQAny[T]) IsEmpty() bool {
+	return len(q) == 0
+}
+
+func (q PQAny[T]) Len() int {
+	return len(q)
+}
+
+func (q *PQAny[T]) EnqueueItem(item PQItem[T]) {
+
+	*q = append(*q, item)
+}
+
+func (q *PQAny[T]) Enqueue(key T, priority int) {
+	*q = append(*q, PQItem[T]{key, priority})
+}
+
+func (q *PQAny[T]) Dequeue() PQItem[T] {
+	if len(*q) == 0 {
+		panic("popping from empty queue")
+	}
+
+	qq := (*q)
+	item := qq[0]
+	var currItem PQItem[T]
+	i := 0
+	for i, currItem = range qq {
+		if currItem.Priority > item.Priority {
+			item = currItem
+		}
+	}
+
+	// qq[i] = PQItem[T]{}
+	(*q) = append(qq[:i], qq[i+1:]...)
+
+	return item
+}
+
+func (q *PQAny[T]) Top() PQItem[T] {
+	if len(*q) == 0 {
+		panic("top from empty queue")
+	}
+
+	qq := (*q)
+	item := qq[0]
+	for _, currItem := range qq {
+		if currItem.Priority > item.Priority {
+			item = currItem
+		}
+	}
+
+	return item
+}
+
+func (q *PQAny[T]) UpdatePriority(key T, priority int) {
+	if q.IsEmpty() {
+		q.Enqueue(key, priority)
+		return
+	}
+
+	qq := (*q)
+	for i, item := range qq {
+		k := item.Key
+		if k == key {
+			(*q)[i].Priority = priority
+		}
+	}
+
+	q.Enqueue(key, priority)
+}

@@ -9,9 +9,9 @@ import (
 	"github.com/unnamedxaer/aoc2023/help"
 )
 
-const inputNameSuffix = ""
+// const inputNameSuffix = ""
 
-// const inputNameSuffix = "_t"
+const inputNameSuffix = "_t"
 const inputName = "./day23/data" + inputNameSuffix + ".txt"
 
 type point struct {
