@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/unnamedxaer/aoc2023/day23"
+	"github.com/unnamedxaer/aoc2023/day24"
 )
 
 func main() {
@@ -82,22 +82,26 @@ func main() {
 	// fmt.Printf("\n--------------------------\n")
 	// measure(day22.Ex2)
 
-	var w day23.World
-	measure(func() {
-		w = day23.ExtractData()
-	})
-	// measure(func() { day23.Ex1(w) })
-	// measure(func() { day23.Ex1_1(w) })
-	// measure(func() { day23.Ex1_2(w) })
-	measure(func() { day23.Ex1_3(w) })
+	// var w day23.World
+	// measure(func() {
+	// 	w = day23.ExtractData()
+	// })
+	// // measure(func() { day23.Ex1(w) })
+	// // measure(func() { day23.Ex1_1(w) })
+	// // measure(func() { day23.Ex1_2(w) })
+	// measure(func() { day23.Ex1_3(w) })
 
-	fmt.Printf("\n--------------------------\n")
-	measure(func() {
-		w = day23.ExtractData()
-	})
-	// measure(func() { day23.Ex2(w) })
-	measure(func() { day23.Ex2_1(w) })
-	// measure(func() { day23.Ex2_2(w) })
+	// fmt.Printf("\n--------------------------\n")
+	// measure(func() {
+	// 	w = day23.ExtractData()
+	// })
+	// // measure(func() { day23.Ex2(w) })
+	// measure(func() { day23.Ex2_1(w) })
+	// // measure(func() { day23.Ex2_2(w) })
+
+	measure(day24.Ex1)
+	// fmt.Printf("\n--------------------------\n")
+	// measure(day24.Ex2)
 }
 
 func measure(fn func()) {
