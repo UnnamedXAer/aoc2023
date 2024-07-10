@@ -66,6 +66,24 @@ func ReadNumValueFromEnd(line []byte, lastDigitPos int) (v int, vLen int) {
 	return v, vLen
 }
 
+func ReadNumValueFromEnd64(line []byte, lastDigitPos int) (v int64, vLen int) {
+	var multiplier int64 = 1
+	for ; lastDigitPos > -1 && IsNumber(line[lastDigitPos]); lastDigitPos-- {
+		v += int64(line[lastDigitPos]-'0') * multiplier
+		vLen++
+		multiplier *= 10
+	}
+
+	if lastDigitPos > -1 {
+		if line[lastDigitPos] == '-' {
+			v = -v
+			vLen++
+		}
+	}
+
+	return v, vLen
+}
+
 func IsNumber(b byte) bool {
 	return b >= '0' && b <= '9'
 }

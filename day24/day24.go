@@ -12,13 +12,12 @@ import (
 const inputNameSuffix = "_t"
 const inputName = "./day24/data" + inputNameSuffix + ".txt"
 
-type point struct{ x, y, z int }
-type velocity struct{ x, y, z int }
+type point struct{ x, y, z int64 }
+type velocity struct{ x, y, z int64 }
 
-type world struct {
-	points     []point
-	velocities []velocity
-	size       int
+type hailstone struct {
+	p point
+	v velocity
 }
 
 func extractData() any {
@@ -28,19 +27,16 @@ func extractData() any {
 
 	scanner := bufio.NewScanner(f)
 
-	world := world{
-		points:     make([]point, 0, 301),
-		velocities: make([]velocity, 0, 301),
-	}
+	hailstones := make([]hailstone, 0, 302)
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		size := len(line) - 1
-		z, n := help.ReadNumValueFromEnd(line, size)
+		z, n := help.ReadNumValueFromEnd64(line, size)
 		size = skipToNumber(line, size-n)
-		y, n := help.ReadNumValueFromEnd(line, size)
+		y, n := help.ReadNumValueFromEnd64(line, size)
 		size = skipToNumber(line, size-n)
-		x, n := help.ReadNumValueFromEnd(line, size)
+		x, n := help.ReadNumValueFromEnd64(line, size)
 
 		vel := velocity{
 			x: x, y: y, z: z,
@@ -48,24 +44,22 @@ func extractData() any {
 
 		size = skipToNumber(line, size-n)
 
-		z, n = help.ReadNumValueFromEnd(line, size)
+		z, n = help.ReadNumValueFromEnd64(line, size)
 		size = skipToNumber(line, size-n)
-		y, n = help.ReadNumValueFromEnd(line, size)
+		y, n = help.ReadNumValueFromEnd64(line, size)
 		size = skipToNumber(line, size-n)
-		x, _ = help.ReadNumValueFromEnd(line, size)
+		x, _ = help.ReadNumValueFromEnd64(line, size)
 
 		p := point{
 			x: x, y: y, z: z,
 		}
 
-		world.points = append(world.points, p)
-		world.velocities = append(world.velocities, vel)
+		hailstones = append(hailstones, hailstone{p, vel})
 	}
 
 	help.IfErr(scanner.Err())
 
-	world.size = len(world.points)
-	return world
+	return hailstones
 }
 
 func skipToNumber(line []byte, size int) int {
@@ -76,6 +70,21 @@ func skipToNumber(line []byte, size int) int {
 }
 
 func Ex1() {
-	x := extractData()
+	x := extractData().([]hailstone)
 	fmt.Printf("\n%v", x)
+
+	fmt.Println()
+
+	// no idea how to solve that :)
+
 }
+
+func trajectory(t int64, h hailstone) (int64, int64) {
+	return h.p.x + h.v.x*t, h.p.y + h.v.y*t
+}
+
+const min = int64(7)
+const max = int64(27)
+
+// const min = int64(200000000000000)
+// const max = int64(400000000000000)
