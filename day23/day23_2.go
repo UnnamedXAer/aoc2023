@@ -2,196 +2,37 @@ package day23
 
 import (
 	"fmt"
-	"math"
 
 	"github.com/unnamedxaer/aoc2023/help"
-	"golang.org/x/exp/constraints"
 )
 
 func Ex2(world World) {
-	// world := extractData()
+
 	fillAdjacencyMap(&world, true)
 
-	cnt := 0
-
-	for _, v := range world.w {
-		for _, v := range v {
-			if v != forrest {
-				cnt++
-			}
-		}
-	}
-	world.steppableCnt = cnt
-
-	// we make "one step" from the entrance Pos to skip checking bounds for the world
-	// the world is surrounded by forest so that should protect us from "index out of range"
 	entrance := point{y: world.entrancePos.y + 1, x: world.entrancePos.x}
-	hike := make(map[point]bool, world.size*world.size)
-	hike[world.entrancePos] = true
-
-	paths := make(map[point][]point)
-	paths[entrance] = []point{world.entrancePos}
-
-	total2, ok2 := calcLongestHikeWithAdjacencyMapEx2(world, entrance, world.entrancePos, 1, hike)
-	if !ok2 {
-		fmt.Printf("\n\n----not ok2")
+	hikeMap := make(map[point]bool, world.size*world.size)
+	hikeMap[world.entrancePos] = true
+	fmt.Print("\n\ncalcLongestHikeMapWithAdjacencyMapEx2")
+	total, ok := calcLongestHikeMapWithAdjacencyMapEx2(world.exitPos, world.adjacency, entrance, world.entrancePos, 1, hikeMap)
+	if !ok {
+		fmt.Printf("not ok")
 	}
 
-	fmt.Printf("\n\n total: %d", total2)
-	// 5030 - too low
+	fmt.Printf("\n total hike map: %d", total)
 }
 
-func Ex2_1(world World) {
-	// world := extractData()
-	fillAdjacencyMap(&world, true)
+func calcLongestHikeMapWithAdjacencyMapEx2(
+	exitPos point,
+	adjacency map[point][]point,
+	pos point,
+	cameFrom point,
+	step int,
+	hike map[point]bool,
+) (int, bool) {
 
-	cnt := 0
-
-	for _, v := range world.w {
-		for _, v := range v {
-			if v != forrest {
-				cnt++
-			}
-		}
-	}
-	world.steppableCnt = cnt
-
-	// we make "one step" from the entrance Pos to skip checking bounds for the world
-	// the world is surrounded by forest so that should protect us from "index out of range"
-	// entrance := point{y: world.entrancePos.y + 1, x: world.entrancePos.x}
-	hike := make([]uint16, 0, cnt/3)
-
-	total2, ok2 := calcLongestHikeWithAdjacencyMapEx2_1(world, world.entrancePos, world.entrancePos, 0, hike)
-	if !ok2 {
-		fmt.Printf("\n\n----not ok2")
-	}
-
-	fmt.Printf("\n\n total: %d", total2)
-	// 5030 - too low
-	// 5246 - too low
-}
-
-func Ex2_2(world World) {
-	// world := extractData()
-	fillAdjacencyMap(&world, true)
-
-	total2 := calcDijkstra(world)
-
-	fmt.Printf("\n\n total: %d", total2)
-	// 5030 - too low
-	// 5246 - too low
-}
-
-func calcDijkstra(world World) int {
-	// fmt.Println(world.adjacency[world.entrancePos])
-	// fmt.Println(world.adjacency[point{y: world.exitPos.y - 1, x: world.exitPos.x}])
-	// world.adjacency[world.entrancePos] = []point{{y: world.entrancePos.y + 1, x: world.entrancePos.x}}
-	// world.adjacency[point{y: world.exitPos.y - 1, x: world.exitPos.x}] = []point{world.exitPos}
-	// fmt.Println(world.adjacency[world.entrancePos])
-	// fmt.Println(world.adjacency[point{y: world.exitPos.y - 1, x: world.exitPos.x}])
-
-	q := help.NewPQAny[point](100)
-	nodesCnt := len(world.adjacency)
-	distances := make(map[point]int, nodesCnt)
-	visited := make(map[point]bool, nodesCnt)
-	paths := make(map[point]point, nodesCnt)
-	var wIdx, d int
-	var v, w point
-	for v = range world.adjacency {
-		if v == world.exitPos {
-			print(v.y, v.x)
-		}
-		distances[v] = math.MaxInt
-	}
-
-	distances[world.entrancePos] = 0
-	paths[world.entrancePos] = world.entrancePos
-	q.Enqueue(world.entrancePos, 0)
-
-	for !q.IsEmpty() {
-		v = q.Dequeue().Key
-		visited[v] = true
-
-		neighbours := world.adjacency[v]
-		for wIdx = 0; wIdx < len(neighbours); wIdx++ {
-			d = distances[v] + (-1) // we are using negative values to find longest path
-			w = neighbours[wIdx]
-			if distances[w] == math.MaxInt {
-				distances[w] = d
-				q.Enqueue(w, -d)
-				paths[w] = v
-			}
-
-			if distances[w] < d {
-				// if distances[w] > d {
-				distances[w] = d
-				q.UpdatePriority(w, -d)
-				paths[w] = v
-			}
-
-		}
-	}
-
-	return distances[world.exitPos]
-}
-
-func calcLongestHikeWithAdjacencyMapEx2_1(world World, pos point, cameFrom point, step int, hike []uint16) (int, bool) {
-
-	if pos == world.exitPos {
+	if pos == exitPos {
 		return step, true
-	}
-
-	if step == world.steppableCnt {
-		return 0, false
-	}
-
-	idx := uint16(pos.y*world.size + pos.x)
-
-	if contains(hike, idx) {
-		return 0, false
-	}
-
-	step++
-	hike = append(hike, idx)
-
-	max := 0
-
-	for _, p := range world.adjacency[pos] {
-		if p == cameFrom {
-			continue
-		}
-
-		if p.y == pos.y-1 && p.x == world.size-2 {
-			continue
-		}
-
-		if p.y == pos.y-1 && p.x == 1 {
-			continue
-		}
-
-		tmpStep, ok := calcLongestHikeWithAdjacencyMapEx2_1(world, p, pos, step, hike)
-		// hike[p] = false
-		// delete(hike, p)
-		if ok && tmpStep > max {
-			max = tmpStep
-		}
-	}
-
-	if max > 0 {
-		return max, true
-	}
-
-	return 0, false
-}
-
-func calcLongestHikeWithAdjacencyMapEx2(world World, pos point, cameFrom point, step int, hike map[point]bool) (int, bool) {
-
-	if pos == world.exitPos {
-		return step, true
-	}
-
-	if step == world.steppableCnt {
-		return 0, false
 	}
 
 	if hike[pos] {
@@ -203,32 +44,25 @@ func calcLongestHikeWithAdjacencyMapEx2(world World, pos point, cameFrom point, 
 
 	max := 0
 
-	for _, p := range world.adjacency[pos] {
+	var p point
+	var ok bool
+	var tmpStep int
+
+	for _, p = range adjacency[pos] {
 		if p == cameFrom {
 			continue
 		}
 
-		if p.y == pos.y-1 && p.x == world.size-2 {
-			continue
-		}
+		tmpStep, ok = calcLongestHikeMapWithAdjacencyMapEx2(exitPos, adjacency, p, pos, step, hike)
 
-		if p.y == pos.y-1 && p.x == 1 {
-			continue
-		}
-
-		tmpStep, ok := calcLongestHikeWithAdjacencyMapEx2(world, p, pos, step, hike)
-		// hike[p] = false
-		delete(hike, p)
+		// delete(hike, p)
+		hike[p] = false
 		if ok && tmpStep > max {
 			max = tmpStep
 		}
 	}
 
-	if max > 0 {
-		return max, true
-	}
-
-	return 0, false
+	return max, true
 }
 
 func fillAdjacencyMap(world *World, canClimb bool) {
@@ -245,9 +79,11 @@ func fillAdjacencyMap(world *World, canClimb bool) {
 	world.w[world.exitPos.y][world.exitPos.x] = path
 	world.adjacency = adjacency
 }
+
 func addConnections(adjacency map[point][]point, w [][]terrainType, p point, canClimb bool) {
 
 	q := help.NewQAny[point]()
+	// q := help.NewStack[point]()
 	q.Push(p)
 
 	for !q.IsEmpty() {
@@ -289,14 +125,4 @@ func addConnections(adjacency map[point][]point, w [][]terrainType, p point, can
 			}
 		}
 	}
-}
-
-func contains[T constraints.Ordered](s []T, x T) bool {
-
-	for i := len(s) - 1; i >= 0; i-- {
-		if s[i] == x {
-			return true
-		}
-	}
-	return false
 }

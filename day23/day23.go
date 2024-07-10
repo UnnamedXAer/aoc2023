@@ -9,9 +9,9 @@ import (
 	"github.com/unnamedxaer/aoc2023/help"
 )
 
-// const inputNameSuffix = ""
+const inputNameSuffix = ""
 
-const inputNameSuffix = "_t"
+// const inputNameSuffix = "_t"
 const inputName = "./day23/data" + inputNameSuffix + ".txt"
 
 type point struct {
@@ -19,12 +19,11 @@ type point struct {
 }
 
 type World struct {
-	w            [][]terrainType
-	size         int
-	entrancePos  point
-	exitPos      point
-	adjacency    map[point][]point
-	steppableCnt int
+	w           [][]terrainType
+	size        int
+	entrancePos point
+	exitPos     point
+	adjacency   map[point][]point
 }
 
 type terrainType = byte
@@ -93,13 +92,14 @@ func extractData() World {
 
 func ExtractData() World {
 	w := extractData()
-	fillAdjacencyMap(&w, false)
+	// fillAdjacencyMap(&w, false)
 	return w
 }
 
 func Ex1(world World) {
 	// fmt.Print(world)
 
+	fillAdjacencyMap(&world, false)
 	// we make "one step" from the entrance Pos to skip checking bounds for the world
 	// the world is surrounded by forest so that should protect us from "index out of range"
 	entrance := point{y: world.entrancePos.y + 1, x: world.entrancePos.x}
@@ -116,42 +116,45 @@ func Ex1(world World) {
 
 func Ex1_1(world World) {
 
+	fillAdjacencyMap(&world, false)
 	entrance := point{y: world.entrancePos.y + 1, x: world.entrancePos.x}
 	hikeMap := make(map[point]bool, world.size*world.size)
 	hikeMap[world.entrancePos] = true
-	fmt.Print("\ncalcLongestHikeEx1HikeMap")
+	fmt.Print("\n\ncalcLongestHikeEx1HikeMap")
 	total, ok := calcLongestHikeEx1HikeMap(false, world, entrance, 1, hikeMap)
 	if !ok {
-		fmt.Printf("not ok")
+		fmt.Printf(" - not ok")
 	}
-	fmt.Printf("\n\n total hike map: %d", total)
+	fmt.Printf("\n total hike map: %d", total)
 }
 
 func Ex1_2(world World) {
 
+	fillAdjacencyMap(&world, false)
 	entrance := point{y: world.entrancePos.y + 1, x: world.entrancePos.x}
 	hikeMap := make(map[point]bool, world.size*world.size)
 	hikeMap[world.entrancePos] = true
-	fmt.Print("\ncalcLongestHikeEx1HikeMapCameFrom")
+	fmt.Print("\n\ncalcLongestHikeEx1HikeMapCameFrom")
 	total, ok := calcLongestHikeEx1HikeMapCameFrom(false, world, entrance, world.entrancePos, 1, hikeMap)
 	if !ok {
-		fmt.Printf("not ok")
+		fmt.Printf(" - not ok")
 	}
-	fmt.Printf("\n\n total hike map: %d", total)
+	fmt.Printf("\n total hike map: %d", total)
 }
 
 func Ex1_3(world World) {
 
+	fillAdjacencyMap(&world, false)
 	entrance := point{y: world.entrancePos.y + 1, x: world.entrancePos.x}
 	hikeMap := make(map[point]bool, world.size*world.size)
 	hikeMap[world.entrancePos] = true
-	fmt.Print("\ncalcLongestHikeMapWithAdjacencyMap")
+	fmt.Print("\n\ncalcLongestHikeMapWithAdjacencyMap")
 	total, ok := calcLongestHikeMapWithAdjacencyMap(world, entrance, world.entrancePos, 1, hikeMap)
 	if !ok {
-		fmt.Printf("not ok")
+		fmt.Printf(" - not ok")
 	}
 
-	fmt.Printf("\n\n total hike map: %d", total)
+	fmt.Printf("\n total hike map: %d", total)
 }
 
 func calcLongestHikeMapWithAdjacencyMap(world World, pos point, cameFrom point, step int, hike map[point]bool) (int, bool) {
@@ -184,11 +187,12 @@ func calcLongestHikeMapWithAdjacencyMap(world World, pos point, cameFrom point, 
 		}
 	}
 
-	if max > 0 {
-		return max, true
-	}
+	return max, true
+	// if max > 0 {
+	// 	return max, true
+	// }
 
-	return 0, false
+	// return 0, false
 }
 
 func calcLongestHikeEx1HikeMapCameFrom(canClimb bool, world World, pos, cameFrom point, step int, hike map[point]bool) (int, bool) {

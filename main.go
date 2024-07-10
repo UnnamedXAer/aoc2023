@@ -86,24 +86,39 @@ func main() {
 	measure(func() {
 		w = day23.ExtractData()
 	})
-	measure(func() { day23.Ex1(w) })
-	measure(func() { day23.Ex1_1(w) })
-	measure(func() { day23.Ex1_2(w) })
+	// measure(func() { day23.Ex1(w) })
+	// measure(func() { day23.Ex1_1(w) })
+	// measure(func() { day23.Ex1_2(w) })
 	measure(func() { day23.Ex1_3(w) })
 	fmt.Printf("\n--------------------------\n")
 	// var w day23.World
 	measure(func() {
 		w = day23.ExtractData()
 	})
-	// measure(func() { day23.Ex2(w) })
+	measure(func() { day23.Ex2(w) })
 	// measure(func() { day23.Ex2_1(w) })
-	measure(func() { day23.Ex2_2(w) })
+	// measure(func() { day23.Ex2_2(w) })
 }
 
 func measure(fn func()) {
 	start := time.Now().UnixNano()
+	done := make(chan bool)
+
+	go func() {
+		i := 0
+		for {
+			select {
+			case <-time.Tick(time.Minute):
+				i++
+				fmt.Printf("\nexecuting... %d min", i)
+			case <-done:
+				return
+			}
+		}
+	}()
 
 	fn()
+	done <- true
 
 	end := time.Now().UnixNano()
 	printTime(start, end)

@@ -136,7 +136,7 @@ func NewStack[T any](n ...int) Stack[T] {
 		size = n[0]
 	}
 
-	return make(Stack[T], size)
+	return make(Stack[T], 0, size)
 }
 
 func (s Stack[T]) IsEmpty() bool {
